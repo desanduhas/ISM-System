@@ -1,0 +1,20 @@
+CREATE TABLE `jobs` (
+	`id` text PRIMARY KEY NOT NULL,
+	`client` text NOT NULL,
+	`title` text NOT NULL,
+	`type` text NOT NULL,
+	`stage` text DEFAULT 'visit' NOT NULL,
+	`date` text NOT NULL,
+	`time` text NOT NULL,
+	`location` text NOT NULL,
+	`contact_name` text NOT NULL,
+	`contact_phone` text NOT NULL,
+	`brief` text NOT NULL,
+	`assigned_role` text NOT NULL,
+	`owner` text NOT NULL,
+	`price` integer DEFAULT 0 NOT NULL,
+	`files_url` text,
+	`invoice_no` text,
+	`payment_status` text DEFAULT 'pending' NOT NULL,
+	`updated_at` text NOT NULL
+);
