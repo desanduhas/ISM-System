@@ -1,50 +1,112 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc, eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { jobs } from "@/db/schema";
+import { z } from "zod";
+import { requireAuth } from "@/lib/auth/get-user";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-export const dynamic = "force-dynamic";
+const CreateJobSchema = z.object({
+  title: z.string().min(1).max(200),
+  job_type: z.enum(["Graphic Design","Photography","Videography","Capturing","Digital Marketing","Social Media Management","Content Creation","Customer Care","Other"]),
+  client_id: z.string().uuid(),
+  assigned_to: z.string().uuid().optional(),
+  department_id: z.string().uuid().optional(),
+  visit_date: z.string().datetime().optional(),
+  visit_location: z.string().optional(),
+  brief: z.string().optional(),
+  deadline: z.string().datetime().optional(),
+  agreed_price: z.number().positive().optional(),
+});
 
-const seed = [
-  { id: "JOB-1048", client: "ABC Company", title: "November social media campaign", type: "Graphic Design", stage: "production", date: "2026-11-09", time: "10:00", location: "Colombo 03", contactName: "Nimali Perera", contactPhone: "+94 77 234 8890", brief: "Create 8 social posts for the November product campaign. Use the blue brand palette and include Sinhala + English copy.", assignedRole: "graphics", owner: "Kavindu", price: 85000, filesUrl: "drive.google.com/abc-campaign", invoiceNo: null, paymentStatus: "pending", updatedAt: "2026-11-08T13:20:00Z" },
-  { id: "JOB-1047", client: "Lanka Fresh", title: "Product photography", type: "Capturing", stage: "visit", date: "2026-11-10", time: "14:30", location: "Wattala", contactName: "Ruwan Silva", contactPhone: "+94 71 456 1020", brief: "On-site shoot for the new beverage range. 25 edited product photos required.", assignedRole: "capturing", owner: "Sahan", price: 65000, filesUrl: null, invoiceNo: null, paymentStatus: "pending", updatedAt: "2026-11-08T11:05:00Z" },
-  { id: "JOB-1046", client: "Ceylon Homes", title: "Lead generation campaign", type: "Digital Marketing", stage: "review", date: "2026-11-08", time: "09:00", location: "Online", contactName: "Fathima Rizna", contactPhone: "+94 76 882 4431", brief: "Meta lead campaign for the Homagama apartment launch. Target 150 qualified leads.", assignedRole: "marketing", owner: "Dinithi", price: 120000, filesUrl: "drive.google.com/ceylon-homes", invoiceNo: null, paymentStatus: "pending", updatedAt: "2026-11-08T09:45:00Z" },
-  { id: "JOB-1045", client: "Aura Wellness", title: "Brand launch content", type: "Graphic Design", stage: "invoice", date: "2026-11-07", time: "11:30", location: "Nugegoda", contactName: "Shanika Fernando", contactPhone: "+94 75 774 2266", brief: "Launch kit with logo applications, 6 social posts and story templates.", assignedRole: "finance", owner: "Hasini", price: 145000, filesUrl: "drive.google.com/aura-launch", invoiceNo: "INV-2026-118", paymentStatus: "pending", updatedAt: "2026-11-08T08:30:00Z" },
-  { id: "JOB-1044", client: "Northstar Academy", title: "Admissions video", type: "Capturing", stage: "closed", date: "2026-11-06", time: "08:30", location: "Kandy", contactName: "Malith Jay", contactPhone: "+94 70 321 9921", brief: "90-second admissions video with campus b-roll and principal interview.", assignedRole: "finance", owner: "Sahan", price: 175000, filesUrl: "drive.google.com/northstar-video", invoiceNo: "INV-2026-114", paymentStatus: "verified", updatedAt: "2026-11-07T16:10:00Z" },
-];
+export async function GET(request: NextRequest) {
+  try {
+    const profile = await requireAuth();
+    const admin = createAdminClient();
+    const { searchParams } = new URL(request.url);
+    const stage = searchParams.get("stage");
+    const clientId = searchParams.get("client_id");
+    const page = parseInt(searchParams.get("page") || "1");
+    const pageSize = parseInt(searchParams.get("pageSize") || "50");
 
-export async function GET() {
-  const db = getDb();
-  let rows = await db.select().from(jobs).orderBy(asc(jobs.date));
-  if (!rows.length) {
-    await db.insert(jobs).values(seed);
-    rows = await db.select().from(jobs).orderBy(asc(jobs.date));
+    let query = admin
+      .from("jobs")
+      .select(`*, client:clients(id, company_name, contact_name, whatsapp_number), assigned_profile:profiles!jobs_assigned_to_fkey(id, full_name, role)`, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1);
+
+    // Role-based filtering
+    if (profile.role !== "MANAGEMENT") {
+      if (profile.role === "FINANCE") {
+        query = query.in("current_stage", ["APPROVED","INVOICE_READY","SENT_TO_CLIENT","PAYMENT_REPORTED","PAYMENT_VERIFIED","COMPLETED"]);
+      } else {
+        query = query.eq("assigned_to", profile.id);
+      }
+    }
+
+    if (stage) query = query.eq("current_stage", stage);
+    if (clientId) query = query.eq("client_id", clientId);
+
+    const { data, count, error } = await query;
+    if (error) throw error;
+
+    return NextResponse.json({ data, count, page, pageSize });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    if (message === "UNAUTHORIZED" || message === "ACCOUNT_DISABLED") {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-  return NextResponse.json(rows);
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const now = new Date().toISOString();
-  const record = {
-    id: `JOB-${Math.floor(1050 + Math.random() * 8000)}`,
-    client: String(body.client || "New client"), title: String(body.title || "Untitled job"),
-    type: String(body.type || "Graphic Design"), stage: "visit", date: String(body.date),
-    time: String(body.time || "09:00"), location: String(body.location || "TBC"),
-    contactName: String(body.contactName || "Client contact"), contactPhone: String(body.contactPhone || ""),
-    brief: String(body.brief || "Brief pending"), assignedRole: "marketing", owner: String(body.owner || "Customer Care"),
-    price: Number(body.price || 0), filesUrl: null, invoiceNo: null, paymentStatus: "pending", updatedAt: now,
-  };
-  await getDb().insert(jobs).values(record);
-  return NextResponse.json(record, { status: 201 });
-}
+  try {
+    const profile = await requireAuth();
+    if (profile.role !== "MANAGEMENT") {
+      return NextResponse.json({ error: "Forbidden: Only management can create jobs" }, { status: 403 });
+    }
 
-export async function PATCH(request: NextRequest) {
-  const body = await request.json();
-  const allowed = ["stage", "assignedRole", "owner", "price", "filesUrl", "invoiceNo", "paymentStatus"] as const;
-  const update: Record<string, string | number> = { updatedAt: new Date().toISOString() };
-  for (const key of allowed) if (body[key] !== undefined) update[key] = body[key];
-  await getDb().update(jobs).set(update).where(eq(jobs.id, String(body.id)));
-  const [row] = await getDb().select().from(jobs).where(eq(jobs.id, String(body.id)));
-  return NextResponse.json(row);
+    const body = await request.json();
+    const validated = CreateJobSchema.parse(body);
+    const admin = createAdminClient();
+
+    const { data: job, error } = await admin
+      .from("jobs")
+      .insert({
+        ...validated,
+        job_number: "", // Will be set by trigger
+        current_stage: "VISIT_SCHEDULED",
+        created_by: profile.id,
+      })
+      .select(`*, client:clients(id, company_name, contact_name, whatsapp_number)`)
+      .single();
+
+    if (error) throw error;
+
+    // Record stage history
+    await admin.from("job_stage_history").insert({
+      job_id: job.id,
+      from_stage: null,
+      to_stage: "VISIT_SCHEDULED",
+      changed_by: profile.id,
+      is_override: false,
+    });
+
+    // Record audit log
+    await admin.from("audit_logs").insert({
+      actor_id: profile.id,
+      action: "JOB_CREATED",
+      entity_type: "jobs",
+      entity_id: job.id,
+      new_values: validated,
+      ip_address: request.headers.get("x-forwarded-for"),
+      user_agent: request.headers.get("user-agent"),
+    });
+
+    return NextResponse.json({ data: job }, { status: 201 });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: "Validation error", details: err.errors }, { status: 400 });
+    }
+    const message = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

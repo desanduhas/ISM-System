@@ -1,23 +1,21 @@
+import "@/lib/node-polyfill";
 import type { Metadata } from "next";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "ISM Flow — Marketing Operations",
-  description: "Plan, produce, approve and close every client job in one place.",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
+  description: "Complete marketing agency operations platform for Sri Lanka.",
+  icons: { icon: "/favicon.svg" },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <Toaster position="top-right" richColors />
+      </body>
     </html>
   );
 }
