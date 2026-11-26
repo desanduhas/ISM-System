@@ -218,6 +218,12 @@ npm run build
 
 ---
 
+## Cloudflare Workers Builds
+
+Connect the GitHub repository to the Worker named `ism-system` using the `main` branch. Set the build command to `npm run build` and the deploy command to `npx wrangler deploy`. The build produces standalone Next.js output. Wrangler then runs the checked-in OpenNext packaging command against that output.
+
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) in the build environment. Set `SUPABASE_SERVICE_ROLE_KEY` as a Worker runtime secret. Set `NEXT_PUBLIC_APP_URL` to the intended HTTPS origin. To verify packaging without deploying, run `npm run build` followed by `npx wrangler deploy --dry-run`.
+
 ## Deployment Instructions (Vercel)
 
 1. Push your repository to GitHub / GitLab.
