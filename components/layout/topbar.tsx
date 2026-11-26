@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, ChevronRight, LogOut, Menu } from "lucide-react";
+import { Bell, ChevronRight, KeyRound, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import ChangePasswordDialog from "@/components/account/change-password-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
@@ -17,6 +18,7 @@ const sections: Record<string, string> = {
 export default function Topbar({ profile, openNav }: { profile: Profile; openNav: () => void }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const router = useRouter();
   const path = usePathname().split("/").filter(Boolean);
   const title = sections[path[0]] || "Overview";
@@ -70,8 +72,23 @@ export default function Topbar({ profile, openNav }: { profile: Profile; openNav
           <span className="account-initials" aria-hidden="true">{initials}</span>
           <div className="account-copy"><strong>{profile.full_name}</strong><span>{ROLE_LABELS[profile.role]}</span></div>
         </div>
+        <button
+          type="button"
+          onClick={() => setPasswordDialogOpen(true)}
+          className="shell-icon"
+          aria-label="Change password"
+          title="Change password"
+        >
+          <KeyRound size={17} strokeWidth={1.6} />
+        </button>
         <button type="button" onClick={signOut} disabled={signingOut} className="shell-icon shell-exit" aria-label="Sign out" title="Sign out"><LogOut size={17} strokeWidth={1.6} /></button>
       </div>
+      {passwordDialogOpen && (
+        <ChangePasswordDialog
+          email={profile.email}
+          onDismiss={() => setPasswordDialogOpen(false)}
+        />
+      )}
     </header>
   );
 }

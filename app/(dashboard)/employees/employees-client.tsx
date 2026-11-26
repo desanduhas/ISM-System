@@ -20,10 +20,12 @@ import {
   Loader2,
   X,
   Activity,
+  KeyRound,
 } from "lucide-react";
 import { ROLE_LABELS, formatSriLankanPhone } from "@/lib/utils";
 import type { UserRole, Department, Profile } from "@/lib/types";
 import { toast } from "sonner";
+import ResetPasswordDialog from "@/components/account/reset-password-dialog";
 
 export interface EmployeeWithStats extends Profile {
   active_jobs_count: number;
@@ -58,6 +60,7 @@ export default function EmployeesClient({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithStats | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeWithStats | null>(null);
+  const [resettingPassword, setResettingPassword] = useState<EmployeeWithStats | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -414,6 +417,13 @@ export default function EmployeesClient({
                           >
                             <Edit2 size={13} /> Edit
                           </button>
+                          <button
+                            onClick={() => setResettingPassword(emp)}
+                            aria-label={`Reset password for ${emp.full_name}`}
+                            className="inline-flex min-h-10 items-center gap-1 px-3 text-xs font-medium text-amber-700 hover:bg-amber-50 rounded-lg border border-amber-200"
+                          >
+                            <KeyRound size={13} /> Reset PW
+                          </button>
                           {emp.id !== currentEmployeeId && (
                             <button
                               aria-label={`Delete ${emp.full_name}`}
@@ -436,6 +446,14 @@ export default function EmployeesClient({
           </table>
         </div>
       </div>
+
+      {resettingPassword && (
+        <ResetPasswordDialog
+          employeeId={resettingPassword.id}
+          employeeName={resettingPassword.full_name}
+          onDismiss={() => setResettingPassword(null)}
+        />
+      )}
 
       {employeeToDelete && (
         <OperationDialog

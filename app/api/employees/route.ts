@@ -33,6 +33,11 @@ const UpdateEmployeeSchema = z.object({
   department_id: z.string().uuid().nullable().optional(),
   whatsapp_number: z.string().nullable().optional(),
   is_active: z.boolean().optional(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .max(128, "Password must be 128 characters or fewer")
+    .optional(),
 });
 
 const DeleteEmployeeSchema = UpdateEmployeeSchema.pick({ id: true });
@@ -302,27 +307,43 @@ export async function PATCH(request: NextRequest) {
     if (validated.whatsapp_number !== undefined) updates.whatsapp_number = validated.whatsapp_number;
     if (validated.is_active !== undefined) updates.is_active = validated.is_active;
 
-    const { data: updatedProfile, error: updateErr } = await admin
-      .from("profiles")
-      .update(updates)
-      .eq("id", validated.id)
-      .select(`
-        id,
-        email,
-        full_name,
-        role,
-        department_id,
-        whatsapp_number,
-        avatar_url,
-        is_active,
-        notification_preferences,
-        created_at,
-        updated_at,
-        department:departments(id, name)
-      `)
-      .single();
+    const profileSelect = `
+      id,
+      email,
+      full_name,
+      role,
+      department_id,
+      whatsapp_number,
+      avatar_url,
+      is_active,
+      notification_preferences,
+      created_at,
+      updated_at,
+      department:departments(id, name)
+    `;
+
+    const hasProfileUpdates = Object.keys(updates).length > 0;
+    const { data: updatedProfile, error: updateErr } = hasProfileUpdates
+      ? await admin
+          .from("profiles")
+          .update(updates)
+          .eq("id", validated.id)
+          .select(profileSelect)
+          .single()
+      : await admin
+          .from("profiles")
+          .select(profileSelect)
+          .eq("id", validated.id)
+          .single();
 
     if (updateErr) throw updateErr;
+
+    if (validated.password) {
+      const { error: passwordErr } = await admin.auth.admin.updateUserById(validated.id, {
+        password: validated.password,
+      });
+      if (passwordErr) throw passwordErr;
+    }
 
     // Sync auth metadata if name or role changed
     if (validated.full_name || validated.role) {
@@ -336,14 +357,17 @@ export async function PATCH(request: NextRequest) {
         .catch(() => {});
     }
 
-    // Audit log
+    // Audit log (never store raw passwords)
     await admin.from("audit_logs").insert({
       actor_id: currentProfile.id,
-      action: "EMPLOYEE_UPDATED",
+      action: validated.password && !hasProfileUpdates ? "EMPLOYEE_PASSWORD_RESET" : "EMPLOYEE_UPDATED",
       entity_type: "profiles",
       entity_id: validated.id,
-      old_values: oldProfile,
-      new_values: updates,
+      old_values: hasProfileUpdates ? oldProfile : null,
+      new_values: {
+        ...updates,
+        ...(validated.password ? { password_reset: true } : {}),
+      },
     });
 
     return NextResponse.json({ data: updatedProfile });
