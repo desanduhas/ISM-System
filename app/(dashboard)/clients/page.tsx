@@ -21,7 +21,7 @@ export default async function ClientsPage() {
   // Fetch all clients and active jobs grouped by client
   const [
     { data: clients, error: clientsErr },
-    { data: jobs, error: jobsErr },
+    { data: jobs },
   ] = await Promise.all([
     admin
       .from("clients")
@@ -53,8 +53,6 @@ export default async function ClientsPage() {
   }));
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <ClientsClient initialClients={clientsWithStats} userProfile={profile} />
-    </div>
+    <ClientsClient initialClients={clientsWithStats} userProfile={profile} />
   );
 }

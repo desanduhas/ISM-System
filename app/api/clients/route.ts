@@ -16,7 +16,7 @@ const CreateClientSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const profile = await requireAuth();
+    await requireAuth();
     const admin = createAdminClient();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");

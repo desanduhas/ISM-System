@@ -35,6 +35,78 @@ const UpdateEmployeeSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
+const DeleteEmployeeSchema = UpdateEmployeeSchema.pick({ id: true });
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const actor = await requireAuth();
+    if (actor.role !== "MANAGEMENT") {
+      return NextResponse.json({ error: "Only management can delete employees." }, { status: 403 });
+    }
+
+    const parsed = DeleteEmployeeSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Select a valid employee." }, { status: 400 });
+    }
+    const id = parsed.data.id.toLowerCase();
+    if (id === actor.id.toLowerCase()) {
+      return NextResponse.json({ error: "You cannot delete your own account." }, { status: 409 });
+    }
+
+    const admin = createAdminClient();
+    const { data: employee, error: readError } = await admin
+      .from("profiles").select("id, full_name, role").eq("id", id).maybeSingle();
+    if (readError) throw readError;
+    if (!employee) {
+      return NextResponse.json({ error: "Employee no longer exists." }, { status: 404 });
+    }
+
+    const countOptions = { count: "exact", head: true } as const;
+    const [assignedJobs, ...history] = await Promise.all([
+      admin.from("jobs").select("id", countOptions).eq("assigned_to", id)
+        .not("current_stage", "in", "(COMPLETED,CANCELLED)"),
+      admin.from("job_assignments").select("id", countOptions).eq("assigned_to", id),
+      admin.from("job_comments").select("id", countOptions).eq("author_id", id),
+      admin.from("job_approvals").select("id", countOptions).eq("reviewed_by", id),
+      admin.from("payments").select("id", countOptions).eq("reported_by", id),
+    ]);
+    if ([assignedJobs, ...history].some(result => result.error || result.count == null)) {
+      throw new Error("Employee reference check failed");
+    }
+    if (assignedJobs.count) {
+      return NextResponse.json({ error: "Reassign this employee’s active jobs before deleting their account." }, { status: 409 });
+    }
+    if (history.some(result => result.count)) {
+      return NextResponse.json({ error: "This employee has assignment, review, comment or payment history. Set them to Inactive to remove access and keep those records." }, { status: 409 });
+    }
+
+    // Auth owns the account. The profile and personal notifications follow its foreign-key cascade.
+    const { error } = await admin.auth.admin.deleteUser(id);
+    if (error?.status === 404 || error?.code === "user_not_found") {
+      return NextResponse.json({ error: "Employee no longer exists." }, { status: 404 });
+    }
+    if (error) throw error;
+
+    // The auth deletion is committed at this point even if the audit service is unavailable.
+    try {
+      const audit = await admin.from("audit_logs").insert({
+        actor_id: actor.id, action: "EMPLOYEE_DELETED", entity_type: "profiles",
+        entity_id: id, old_values: employee,
+      });
+      if (audit.error) throw audit.error;
+    } catch {
+      console.error("Could not record EMPLOYEE_DELETED audit event", { actorId: actor.id, employeeId: id });
+      return NextResponse.json({ success: true, warning: "Employee deleted, but the audit entry could not be saved." });
+    }
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error && ["UNAUTHORIZED", "ACCOUNT_DISABLED"].includes(err.message)) {
+      return NextResponse.json({ error: "Sign in with an active management account." }, { status: 401 });
+    }
+    return NextResponse.json({ error: "Could not delete the employee. Refresh the list and try again." }, { status: 500 });
+  }
+}
+
 export async function GET() {
   try {
     const profile = await requireAuth();

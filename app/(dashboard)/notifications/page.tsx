@@ -24,7 +24,6 @@ export default async function NotificationsPage() {
   return (
     <NotificationsClient
       initialNotifications={notifications || []}
-      profile={profile}
     />
   );
 }

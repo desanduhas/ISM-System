@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth/get-user";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import PaymentsClient from "./payments-client";
+import PaymentsClient, { type PaymentsClientProps } from "./payments-client";
 
 export default async function PaymentsPage() {
   let profile;
@@ -16,34 +16,37 @@ export default async function PaymentsPage() {
     redirect("/");
   }
 
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
   const [
     { data: payments },
     { data: pendingInvoices },
     { data: activeJobs },
   ] = await Promise.all([
-    admin
+    supabase
       .from("payments")
       .select("*, invoice:invoices(id, invoice_number, total, client:clients(id, company_name, contact_name)), job:jobs(id, job_number, title), reported_by_profile:profiles!payments_reported_by_fkey(id, full_name), verified_by_profile:profiles!payments_verified_by_fkey(id, full_name)")
-      .order("reported_at", { ascending: false }),
-    admin
+      .order("reported_at", { ascending: false })
+      .overrideTypes<PaymentsClientProps["payments"], { merge: false }>(),
+    supabase
       .from("invoices")
       .select("id, invoice_number, total, status, job_id, client_id, client:clients(company_name), job:jobs(id, job_number, title)")
       .not("status", "in", "(PAID,CANCELLED)")
-      .order("created_at", { ascending: false }),
-    admin
+      .order("created_at", { ascending: false })
+      .overrideTypes<PaymentsClientProps["pendingInvoices"], { merge: false }>(),
+    supabase
       .from("jobs")
       .select("id, job_number, title, current_stage, agreed_price, client:clients(company_name)")
       .in("current_stage", ["INVOICE_READY", "SENT_TO_CLIENT", "PAYMENT_REPORTED"])
-      .order("updated_at", { ascending: false }),
+      .order("updated_at", { ascending: false })
+      .overrideTypes<PaymentsClientProps["activeJobs"], { merge: false }>(),
   ]);
 
   return (
     <PaymentsClient
-      payments={(payments as any) || []}
-      pendingInvoices={(pendingInvoices as any) || []}
-      activeJobs={(activeJobs as any) || []}
+      payments={payments || []}
+      pendingInvoices={pendingInvoices || []}
+      activeJobs={activeJobs || []}
       profile={profile}
     />
   );

@@ -1,24 +1,22 @@
 "use client";
 
+import ModuleMetrics from "@/app/(dashboard)/_components/module-metrics";
+
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Building2,
   User,
   Phone,
   Mail,
   MapPin,
   FileText,
-  Calendar,
   CreditCard,
   Briefcase,
   ArrowLeft,
   MessageSquare,
-  Clock,
   CheckCircle2,
   AlertTriangle,
   Receipt,
-  ExternalLink,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -28,7 +26,7 @@ import {
   STAGE_COLORS,
   isOverdue,
 } from "@/lib/utils";
-import type { Client, Job, Invoice, Payment, Profile } from "@/lib/types";
+import type { Client, Job, Invoice, Payment } from "@/lib/types";
 
 interface JobWithProfile extends Omit<Job, "assigned_profile"> {
   assigned_profile?: {
@@ -49,7 +47,6 @@ interface ClientDetailClientProps {
   jobs: JobWithProfile[];
   invoices: Invoice[];
   payments: PaymentWithInvoice[];
-  currentUser: Profile;
 }
 
 const INVOICE_STATUS_COLORS: Record<string, string> = {
@@ -71,7 +68,6 @@ export default function ClientDetailClient({
   jobs,
   invoices,
   payments,
-  currentUser,
 }: ClientDetailClientProps) {
   const [activeTab, setActiveTab] = useState<"jobs" | "invoices" | "payments">("jobs");
 
@@ -100,12 +96,13 @@ export default function ClientDetailClient({
     : null;
 
   return (
-    <div className="space-y-6">
+    <div className="operations-module module-client-detail">
       {/* Top Breadcrumb & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="module-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             href="/clients"
+            aria-label="Back to clients"
             className="p-2 bg-white rounded-lg border border-slate-200 text-slate-600 hover:text-purple-600 hover:border-purple-200 transition-colors shadow-sm"
           >
             <ArrowLeft size={18} />
@@ -126,7 +123,7 @@ export default function ClientDetailClient({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Client profile & transaction records • Registered on{" "}
+              Client since{" "}
               {formatDate(client.created_at)}
             </p>
           </div>
@@ -167,76 +164,12 @@ export default function ClientDetailClient({
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">
-              Total Invoiced
-            </span>
-            <Receipt size={18} className="text-purple-600" />
-          </div>
-          <p className="text-2xl font-bold text-slate-900">
-            {formatCurrency(totalBilled)}
-          </p>
-          <p className="text-xs text-slate-400 mt-1">{invoices.length} invoices generated</p>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">
-              Total Collected
-            </span>
-            <CheckCircle2 size={18} className="text-emerald-600" />
-          </div>
-          <p className="text-2xl font-bold text-emerald-600">
-            {formatCurrency(totalPaid)}
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            {payments.filter((p) => p.status === "VERIFIED").length} verified payments
-          </p>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">
-              Outstanding Balance
-            </span>
-            <AlertTriangle
-              size={18}
-              className={outstandingBalance > 0 ? "text-rose-500" : "text-slate-400"}
-            />
-          </div>
-          <p
-            className={`text-2xl font-bold ${
-              outstandingBalance > 0 ? "text-rose-600" : "text-slate-900"
-            }`}
-          >
-            {formatCurrency(outstandingBalance)}
-          </p>
-          {pendingVerification > 0 && (
-            <p className="text-xs text-amber-600 mt-1">
-              ({formatCurrency(pendingVerification)} pending verification)
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Jobs Overview</span>
-            <Briefcase size={18} className="text-blue-600" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-slate-900">{activeJobs.length}</p>
-            <span className="text-xs text-slate-500">active</span>
-            <span className="text-slate-300">/</span>
-            <p className="text-lg font-semibold text-slate-600">{jobs.length}</p>
-            <span className="text-xs text-slate-500">total</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            {completedJobs.length} completed successfully
-          </p>
-        </div>
-      </div>
+      <ModuleMetrics items={[
+        { label: "Total invoiced", value: formatCurrency(totalBilled), icon: Receipt, detail: `${invoices.length} invoices` },
+        { label: "Total collected", value: formatCurrency(totalPaid), icon: CheckCircle2, detail: `${payments.filter((payment) => payment.status === "VERIFIED").length} verified payments` },
+        { label: "Outstanding balance", value: formatCurrency(outstandingBalance), icon: AlertTriangle, detail: pendingVerification > 0 ? `${formatCurrency(pendingVerification)} pending verification` : undefined },
+        { label: "Active jobs", value: activeJobs.length, icon: Briefcase, detail: `${jobs.length} total · ${completedJobs.length} completed` },
+      ]} />
 
       {/* Main Grid: Details + Tabs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -311,8 +244,9 @@ export default function ClientDetailClient({
         {/* Right Column: Interactive Tabs for Jobs, Invoices, Payments */}
         <div className="lg:col-span-2 space-y-4">
           {/* Tab Navigation */}
-          <div className="flex border-b border-slate-200 bg-white px-4 rounded-t-xl">
+          <div className="module-detail-tabs flex border-b border-slate-200">
             <button
+              aria-pressed={activeTab === "jobs"}
               onClick={() => setActiveTab("jobs")}
               className={`py-3.5 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === "jobs"
@@ -325,6 +259,7 @@ export default function ClientDetailClient({
             </button>
 
             <button
+              aria-pressed={activeTab === "invoices"}
               onClick={() => setActiveTab("invoices")}
               className={`py-3.5 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === "invoices"
@@ -337,6 +272,7 @@ export default function ClientDetailClient({
             </button>
 
             <button
+              aria-pressed={activeTab === "payments"}
               onClick={() => setActiveTab("payments")}
               className={`py-3.5 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === "payments"
@@ -445,24 +381,24 @@ export default function ClientDetailClient({
                   No invoices recorded for this client.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-600">
+                <div className="module-table-scroll overflow-x-auto">
+                  <table className="module-table w-full text-left text-xs text-slate-600">
                     <thead className="bg-slate-50 uppercase text-slate-400 font-semibold border-b border-slate-200">
                       <tr>
-                        <th className="py-2.5 px-3">Invoice #</th>
-                        <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3">Issued Date</th>
-                        <th className="py-2.5 px-3">Due Date</th>
-                        <th className="py-2.5 px-3 text-right">Amount</th>
+                        <th scope="col" className="py-2.5 px-3">Invoice #</th>
+                        <th scope="col" className="py-2.5 px-3">Status</th>
+                        <th scope="col" className="py-2.5 px-3">Issued Date</th>
+                        <th scope="col" className="py-2.5 px-3">Due Date</th>
+                        <th scope="col" className="py-2.5 px-3 text-right">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {invoices.map((inv) => (
                         <tr key={inv.id} className="hover:bg-slate-50/80">
-                          <td className="py-3 px-3 font-mono font-medium text-slate-900">
+                          <td data-label="Invoice #" className="py-3 px-3 font-mono font-medium text-slate-900">
                             {inv.invoice_number}
                           </td>
-                          <td className="py-3 px-3">
+                          <td data-label="Status" className="py-3 px-3">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                                 INVOICE_STATUS_COLORS[inv.status] || "bg-slate-100"
@@ -471,13 +407,13 @@ export default function ClientDetailClient({
                               {inv.status}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-slate-600">
+                          <td data-label="Issued Date" className="py-3 px-3 text-slate-600">
                             {formatDate(inv.issued_at || inv.created_at)}
                           </td>
-                          <td className="py-3 px-3 text-slate-600">
+                          <td data-label="Due Date" className="py-3 px-3 text-slate-600">
                             {formatDate(inv.due_date)}
                           </td>
-                          <td className="py-3 px-3 text-right font-semibold text-slate-900">
+                          <td data-label="Amount" className="py-3 px-3 text-right font-semibold text-slate-900">
                             {formatCurrency(inv.total)}
                           </td>
                         </tr>
@@ -497,34 +433,34 @@ export default function ClientDetailClient({
                   No payment records found for this client.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-600">
+                <div className="module-table-scroll overflow-x-auto">
+                  <table className="module-table w-full text-left text-xs text-slate-600">
                     <thead className="bg-slate-50 uppercase text-slate-400 font-semibold border-b border-slate-200">
                       <tr>
-                        <th className="py-2.5 px-3">Date</th>
-                        <th className="py-2.5 px-3">Invoice #</th>
-                        <th className="py-2.5 px-3">Reference</th>
-                        <th className="py-2.5 px-3">Method</th>
-                        <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3 text-right">Amount</th>
+                        <th scope="col" className="py-2.5 px-3">Date</th>
+                        <th scope="col" className="py-2.5 px-3">Invoice #</th>
+                        <th scope="col" className="py-2.5 px-3">Reference</th>
+                        <th scope="col" className="py-2.5 px-3">Method</th>
+                        <th scope="col" className="py-2.5 px-3">Status</th>
+                        <th scope="col" className="py-2.5 px-3 text-right">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {payments.map((p) => (
                         <tr key={p.id} className="hover:bg-slate-50/80">
-                          <td className="py-3 px-3 font-medium text-slate-900">
+                          <td data-label="Date" className="py-3 px-3 font-medium text-slate-900">
                             {formatDate(p.payment_date || p.reported_at)}
                           </td>
-                          <td className="py-3 px-3 font-mono text-purple-700">
+                          <td data-label="Invoice #" className="py-3 px-3 font-mono text-purple-700">
                             {p.invoice?.invoice_number || "—"}
                           </td>
-                          <td className="py-3 px-3 text-slate-600">
+                          <td data-label="Reference" className="py-3 px-3 text-slate-600">
                             {p.reference_number || "—"}
                           </td>
-                          <td className="py-3 px-3 text-slate-600">
+                          <td data-label="Method" className="py-3 px-3 text-slate-600">
                             {p.payment_method || "Bank Transfer"}
                           </td>
-                          <td className="py-3 px-3">
+                          <td data-label="Status" className="py-3 px-3">
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                                 PAYMENT_STATUS_COLORS[p.status] || "bg-slate-100"
@@ -533,7 +469,7 @@ export default function ClientDetailClient({
                               {p.status}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-right font-semibold text-emerald-600">
+                          <td data-label="Amount" className="py-3 px-3 text-right font-semibold text-emerald-600">
                             {formatCurrency(p.amount)}
                           </td>
                         </tr>

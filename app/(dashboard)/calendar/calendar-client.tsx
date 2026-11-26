@@ -4,41 +4,27 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Plus,
   Filter,
   Clock,
   MapPin,
-  AlertTriangle,
-  Briefcase,
-  User,
-  Building2,
-  X,
   RotateCcw,
-  Flag,
-  CheckCircle,
 } from "lucide-react";
 import CreateJobDialog from "@/components/jobs/create-job-dialog";
 import {
   STAGE_LABELS,
   STAGE_COLORS,
-  ROLE_LABELS,
   JOB_TYPES,
   formatCurrency,
-  formatDate,
-  formatDateTime,
   isOverdue,
 } from "@/lib/utils";
 import type {
   Job,
-  JobStage,
-  JobType,
   Profile,
   Department,
   Client,
-  UserRole,
 } from "@/lib/types";
 
 export interface CalendarJob extends Omit<Job, "assigned_profile" | "department"> {
@@ -311,15 +297,15 @@ export default function CalendarClient({
   const today = new Date();
 
   return (
-    <div className="space-y-6">
+    <div className="operations-module module-calendar">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="module-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Operations Calendar
+            Operations calendar
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Track client photo/video shoots, meetings, and production deadlines.
+            Client visits, shoots and production deadlines.
           </p>
         </div>
 
@@ -337,7 +323,7 @@ export default function CalendarClient({
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+      <div className="module-toolbar bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
             <Filter size={14} className="text-purple-600" />
@@ -357,10 +343,11 @@ export default function CalendarClient({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Employee filter */}
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+            <label htmlFor="calendar-employee-1" className="block text-[11px] font-medium text-slate-500 mb-1">
               Employee
             </label>
             <select
+              id="calendar-employee-1"
               value={filterEmployee}
               onChange={(e) => setFilterEmployee(e.target.value)}
               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -376,10 +363,11 @@ export default function CalendarClient({
 
           {/* Department filter */}
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+            <label htmlFor="calendar-department-2" className="block text-[11px] font-medium text-slate-500 mb-1">
               Department
             </label>
             <select
+              id="calendar-department-2"
               value={filterDepartment}
               onChange={(e) => setFilterDepartment(e.target.value)}
               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -395,10 +383,11 @@ export default function CalendarClient({
 
           {/* Job Type filter */}
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+            <label htmlFor="calendar-job-type-3" className="block text-[11px] font-medium text-slate-500 mb-1">
               Job Type
             </label>
             <select
+              id="calendar-job-type-3"
               value={filterJobType}
               onChange={(e) => setFilterJobType(e.target.value)}
               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -414,10 +403,11 @@ export default function CalendarClient({
 
           {/* Stage filter */}
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+            <label htmlFor="calendar-stage-4" className="block text-[11px] font-medium text-slate-500 mb-1">
               Stage
             </label>
             <select
+              id="calendar-stage-4"
               value={filterStage}
               onChange={(e) => setFilterStage(e.target.value)}
               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -433,10 +423,11 @@ export default function CalendarClient({
 
           {/* Client filter */}
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+            <label htmlFor="calendar-client-5" className="block text-[11px] font-medium text-slate-500 mb-1">
               Client
             </label>
             <select
+              id="calendar-client-5"
               value={filterClient}
               onChange={(e) => setFilterClient(e.target.value)}
               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -452,10 +443,11 @@ export default function CalendarClient({
 
           {/* Event Type filter */}
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+            <label htmlFor="calendar-event-category-6" className="block text-[11px] font-medium text-slate-500 mb-1">
               Event Category
             </label>
             <select
+              id="calendar-event-category-6"
               value={filterEventType}
               onChange={(e) =>
                 setFilterEventType(e.target.value as "ALL" | "VISIT" | "DEADLINE")
@@ -471,7 +463,7 @@ export default function CalendarClient({
       </div>
 
       {/* Calendar Controls & Navigation Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="calendar-navigation bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Navigation buttons */}
         <div className="flex items-center gap-3">
           <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
@@ -522,6 +514,7 @@ export default function CalendarClient({
 
           <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
             <button
+              aria-pressed={viewMode === "month"}
               onClick={() => setViewMode("month")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === "month"
@@ -532,6 +525,7 @@ export default function CalendarClient({
               Month
             </button>
             <button
+              aria-pressed={viewMode === "week"}
               onClick={() => setViewMode("week")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === "week"
@@ -542,6 +536,7 @@ export default function CalendarClient({
               Week
             </button>
             <button
+              aria-pressed={viewMode === "day"}
               onClick={() => setViewMode("day")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === "day"
@@ -557,7 +552,7 @@ export default function CalendarClient({
 
       {/* VIEW 1: MONTH GRID */}
       {viewMode === "month" && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="calendar-month bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Day of Week Header */}
           <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider py-2.5">
             <div>Mon</div>
@@ -585,8 +580,14 @@ export default function CalendarClient({
                   } ${isToday ? "bg-purple-50/30" : ""}`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span
-                      className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
+                    <button
+                      type="button"
+                      aria-label={`Open agenda for ${cell.date.toLocaleDateString("en-GB", { dateStyle: "full" })}`}
+                      onClick={() => {
+                        setCurrentDate(cell.date);
+                        setViewMode("day");
+                      }}
+                      className={`calendar-date text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
                         isToday
                           ? "bg-purple-600 text-white shadow-sm"
                           : cell.isCurrentMonth
@@ -595,7 +596,7 @@ export default function CalendarClient({
                       }`}
                     >
                       {cell.date.getDate()}
-                    </span>
+                    </button>
                     {dayEvents.length > 0 && (
                       <span className="text-[10px] text-slate-400 font-medium">
                         {dayEvents.length} {dayEvents.length === 1 ? "task" : "tasks"}
@@ -666,7 +667,7 @@ export default function CalendarClient({
 
       {/* VIEW 2: WEEK GRID */}
       {viewMode === "week" && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="calendar-week bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="grid grid-cols-7 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50 text-center py-3">
             {weekDays.map((d, idx) => {
               const isToday = isSameDay(d, today);
@@ -695,6 +696,7 @@ export default function CalendarClient({
 
               return (
                 <div key={idx} className="space-y-2 p-1.5">
+                  <p className="calendar-week-day">{d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}</p>
                   {dayEvents.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-[11px] text-slate-300 py-10">
                       No events
@@ -783,10 +785,10 @@ export default function CalendarClient({
           <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">
-                Daily Schedule (Sri Lanka Business Hours)
+                Daily schedule
               </p>
               <p className="text-xs text-slate-500">
-                Active operations from 08:30 AM to 06:30 PM (Asia/Colombo UTC+5:30)
+                Visit times and deadlines
               </p>
             </div>
             <div className="text-xs font-medium text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">

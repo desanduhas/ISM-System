@@ -1,12 +1,12 @@
 "use client";
 
+import OperationDialog from "@/app/(dashboard)/_components/operation-dialog";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Calendar,
-  Clock,
   MapPin,
   User,
   Phone,
@@ -25,10 +25,9 @@ import {
   Download,
   AlertTriangle,
   ChevronRight,
-  ShieldAlert,
   Building,
 } from "lucide-react";
-import { canTransition, getAvailableTransitions } from "@/lib/auth/role-guard";
+import { getAvailableTransitions } from "@/lib/auth/role-guard";
 import {
   STAGE_LABELS,
   STAGE_COLORS,
@@ -44,13 +43,11 @@ import { toast } from "sonner";
 interface JobDetailClientProps {
   job: Record<string, unknown>;
   profile: Profile;
-  allProfiles: Array<{ id: string; full_name: string; role: string }>;
 }
 
 export default function JobDetailClient({
   job: initialJob,
   profile,
-  allProfiles,
 }: JobDetailClientProps) {
   const router = useRouter();
   const [job, setJob] = useState(initialJob);
@@ -190,12 +187,13 @@ export default function JobDetailClient({
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="operations-module module-job-detail">
       {/* Top Bar with Back and Header Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200">
+      <div className="module-heading flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <Link
             href="/jobs"
+            aria-label="Back to jobs"
             className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
           >
             <ArrowLeft size={18} />
@@ -274,8 +272,9 @@ export default function JobDetailClient({
 
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
+        <nav aria-label="Job sections" className="module-detail-tabs flex">
           <button
+            aria-pressed={activeTab === "overview"}
             onClick={() => setActiveTab("overview")}
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === "overview"
@@ -286,6 +285,7 @@ export default function JobDetailClient({
             Overview
           </button>
           <button
+            aria-pressed={activeTab === "files"}
             onClick={() => setActiveTab("files")}
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
               activeTab === "files"
@@ -301,6 +301,7 @@ export default function JobDetailClient({
             )}
           </button>
           <button
+            aria-pressed={activeTab === "activity"}
             onClick={() => setActiveTab("activity")}
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
               activeTab === "activity"
@@ -317,6 +318,7 @@ export default function JobDetailClient({
           </button>
           {(profile.role === "MANAGEMENT" || profile.role === "FINANCE") && (
             <button
+              aria-pressed={activeTab === "finance"}
               onClick={() => setActiveTab("finance")}
               className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                 activeTab === "finance"
@@ -822,64 +824,62 @@ export default function JobDetailClient({
 
       {/* Action Dialog Modal for Revision or Cancellation */}
       {dialogAction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">
-                {dialogAction === "revision" ? "Request Work Revision" : "Cancel Job"}
-              </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                {dialogAction === "revision"
-                  ? "Describe what changes are needed before work can be approved."
-                  : "Please provide a clear cancellation reason for the audit trail."}
-              </p>
-            </div>
-
-            <textarea
-              value={actionNotes}
-              onChange={(e) => setActionNotes(e.target.value)}
-              rows={4}
-              placeholder={
-                dialogAction === "revision"
-                  ? "Specify what adjustments the design/creative team should make..."
-                  : "Reason for cancelling this job..."
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setDialogAction(null);
-                  setActionNotes("");
-                }}
-                disabled={transitioning}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={transitioning || !actionNotes.trim()}
-                onClick={() =>
-                  handleTransition(
-                    dialogAction === "revision" ? "REVISION_REQUESTED" : "CANCELLED",
-                    actionNotes
-                  )
-                }
-                className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors inline-flex items-center gap-1.5 ${
-                  dialogAction === "revision"
-                    ? "bg-amber-600 hover:bg-amber-700"
-                    : "bg-red-600 hover:bg-red-700"
-                }`}
-              >
-                {transitioning ? <Loader2 size={16} className="animate-spin" /> : null}
-                {dialogAction === "revision" ? "Submit Revision Request" : "Confirm Cancellation"}
-              </button>
-            </div>
+        <OperationDialog titleId="job-stage-dialog" onDismiss={() => setDialogAction(null)} className="w-full max-w-md p-6 space-y-4">
+          <div>
+            <h3 id="job-stage-dialog" className="text-lg font-bold text-gray-900">
+              {dialogAction === "revision" ? "Request Work Revision" : "Cancel Job"}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {dialogAction === "revision"
+                ? "Describe what changes are needed before work can be approved."
+                : "Please provide a clear cancellation reason for the audit trail."}
+            </p>
           </div>
-        </div>
+
+          <textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            rows={4}
+            placeholder={
+              dialogAction === "revision"
+                ? "Specify what adjustments the design/creative team should make..."
+                : "Reason for cancelling this job..."
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDialogAction(null);
+                setActionNotes("");
+              }}
+              disabled={transitioning}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={transitioning || !actionNotes.trim()}
+              onClick={() =>
+                handleTransition(
+                  dialogAction === "revision" ? "REVISION_REQUESTED" : "CANCELLED",
+                  actionNotes
+                )
+              }
+              className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors inline-flex items-center gap-1.5 ${
+                dialogAction === "revision"
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
+            >
+              {transitioning ? <Loader2 size={16} className="animate-spin" /> : null}
+              {dialogAction === "revision" ? "Submit Revision Request" : "Confirm Cancellation"}
+            </button>
+          </div>
+        </OperationDialog>
       )}
     </div>
   );

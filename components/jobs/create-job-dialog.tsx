@@ -1,10 +1,12 @@
 "use client";
 
+import OperationDialog from "@/app/(dashboard)/_components/operation-dialog";
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Plus, Loader2, Building2, UserPlus } from "lucide-react";
+import { X, Plus, Loader2, UserPlus } from "lucide-react";
 import { JOB_TYPES, ROLE_LABELS } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
 import { toast } from "sonner";
@@ -184,300 +186,313 @@ export default function CreateJobDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="font-semibold text-gray-900">Create New Job</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Schedule a client visit and create a job record
-            </p>
+    <OperationDialog titleId="new-job-dialog" onDismiss={onClose} className="w-full max-w-lg">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div>
+          <h2 id="new-job-dialog" className="font-semibold text-gray-900">New job</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Schedule a client visit and create a job record
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+          aria-label="Close dialog"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        {/* Client Selection / Inline Creation */}
+        <div>
+          <label htmlFor="new-job-client-1" className="block text-sm font-medium text-gray-700 mb-1">
+            Client *
+          </label>
+          <select
+            id="new-job-client-1"
+            value={isNewClient ? "__NEW_CLIENT__" : selectedClientId}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "__NEW_CLIENT__") {
+                setIsNewClient(true);
+                setValue("client_id", "");
+              } else {
+                setIsNewClient(false);
+                setValue("client_id", val);
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+          >
+            <option value="">Select a client...</option>
+            <option
+              value="__NEW_CLIENT__"
+              className="text-purple-700 font-semibold bg-purple-50"
+            >
+              Add a new client…
+            </option>
+            {clientsList.length > 0 && (
+              <optgroup label="Existing Clients">
+                {clientsList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.company_name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
+
+        {/* Inline New Client Fields */}
+        {isNewClient && (
+          <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
+                <UserPlus size={14} />
+                New Client Information
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNewClient(false);
+                  setValue("client_id", "");
+                }}
+                className="text-xs text-purple-700 hover:text-purple-900 underline font-medium"
+              >
+                Choose existing client
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label htmlFor="new-job-company-name-2" className="block text-xs font-medium text-slate-700 mb-1">
+                  Company Name *
+                </label>
+                <input
+                  id="new-job-company-name-2"
+                  value={newClient.company_name}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, company_name: e.target.value })
+                  }
+                  placeholder="e.g. Acme Marketing PVT Ltd"
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required={isNewClient}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="new-job-primary-contact-person-3" className="block text-xs font-medium text-slate-700 mb-1">
+                  Primary Contact Person *
+                </label>
+                <input
+                  id="new-job-primary-contact-person-3"
+                  value={newClient.contact_name}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, contact_name: e.target.value })
+                  }
+                  placeholder="e.g. Kasun Fernando"
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required={isNewClient}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="new-job-phone-number-4" className="block text-xs font-medium text-slate-700 mb-1">
+                  Phone Number
+                </label>
+                <input
+                  id="new-job-phone-number-4"
+                  value={newClient.phone}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, phone: e.target.value })
+                  }
+                  placeholder="077 123 4567"
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="new-job-whatsapp-number-5" className="block text-xs font-medium text-slate-700 mb-1">
+                  WhatsApp Number
+                </label>
+                <input
+                  id="new-job-whatsapp-number-5"
+                  value={newClient.whatsapp_number}
+                  onChange={(e) =>
+                    setNewClient({
+                      ...newClient,
+                      whatsapp_number: e.target.value,
+                    })
+                  }
+                  placeholder="+94 77 123 4567"
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="new-job-email-address-optional-6" className="block text-xs font-medium text-slate-700 mb-1">
+                  Email Address (Optional)
+                </label>
+                <input
+                  id="new-job-email-address-optional-6"
+                  type="email"
+                  value={newClient.email}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, email: e.target.value })
+                  }
+                  placeholder="contact@acme.example.lk"
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
           </div>
+        )}
+
+        <div>
+          <label htmlFor="new-job-job-title-7" className="block text-sm font-medium text-gray-700 mb-1">
+            Job Title *
+          </label>
+          <input
+            id="new-job-job-title-7"
+            {...register("title")}
+            placeholder="e.g. November social media campaign"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          {errors.title && (
+            <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="new-job-job-type-8" className="block text-sm font-medium text-gray-700 mb-1">
+              Job Type *
+            </label>
+            <select
+              id="new-job-job-type-8"
+              {...register("job_type")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+            >
+              {JOB_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="new-job-agreed-price-lkr-9" className="block text-sm font-medium text-gray-700 mb-1">
+              Agreed Price (LKR)
+            </label>
+            <input
+              id="new-job-agreed-price-lkr-9"
+              {...register("agreed_price")}
+              type="number"
+              placeholder="85000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        </div>
+
+        {profiles.length > 0 && (
+          <div>
+            <label htmlFor="new-job-assign-to-10" className="block text-sm font-medium text-gray-700 mb-1">
+              Assign To
+            </label>
+            <select
+              id="new-job-assign-to-10"
+              {...register("assigned_to")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+            >
+              <option value="">Unassigned</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.full_name} ({ROLE_LABELS[p.role as UserRole] || p.role})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="new-job-visit-date-11" className="block text-sm font-medium text-gray-700 mb-1">
+              Visit Date
+            </label>
+            <input
+              id="new-job-visit-date-11"
+              {...register("visit_date")}
+              type="datetime-local"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="new-job-deadline-12" className="block text-sm font-medium text-gray-700 mb-1">
+              Deadline
+            </label>
+            <input
+              id="new-job-deadline-12"
+              {...register("deadline")}
+              type="datetime-local"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="new-job-visit-location-13" className="block text-sm font-medium text-gray-700 mb-1">
+            Visit Location
+          </label>
+          <input
+            id="new-job-visit-location-13"
+            {...register("visit_location")}
+            placeholder="e.g. Colombo 03 / Online"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="new-job-brief-notes-14" className="block text-sm font-medium text-gray-700 mb-1">
+            Brief / Notes
+          </label>
+          <textarea
+            id="new-job-brief-notes-14"
+            {...register("brief")}
+            rows={3}
+            placeholder="Describe the client's requirements..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+          />
+        </div>
+
+        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+            disabled={loading}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <X size={18} />
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus size={16} />
+                Create Job
+              </>
+            )}
           </button>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          {/* Client Selection / Inline Creation */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Client *
-            </label>
-            <select
-              value={isNewClient ? "__NEW_CLIENT__" : selectedClientId}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "__NEW_CLIENT__") {
-                  setIsNewClient(true);
-                  setValue("client_id", "");
-                } else {
-                  setIsNewClient(false);
-                  setValue("client_id", val);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-            >
-              <option value="">Select a client...</option>
-              <option
-                value="__NEW_CLIENT__"
-                className="text-purple-700 font-semibold bg-purple-50"
-              >
-                ✨ + Add New Client...
-              </option>
-              {clientsList.length > 0 && (
-                <optgroup label="Existing Clients">
-                  {clientsList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.company_name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </div>
-
-          {/* Inline New Client Fields */}
-          {isNewClient && (
-            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
-                  <UserPlus size={14} />
-                  New Client Information
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsNewClient(false);
-                    setValue("client_id", "");
-                  }}
-                  className="text-xs text-purple-700 hover:text-purple-900 underline font-medium"
-                >
-                  Choose existing client
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Company Name *
-                  </label>
-                  <input
-                    value={newClient.company_name}
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, company_name: e.target.value })
-                    }
-                    placeholder="e.g. Acme Marketing PVT Ltd"
-                    className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required={isNewClient}
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Primary Contact Person *
-                  </label>
-                  <input
-                    value={newClient.contact_name}
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, contact_name: e.target.value })
-                    }
-                    placeholder="e.g. Kasun Fernando"
-                    className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required={isNewClient}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    value={newClient.phone}
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, phone: e.target.value })
-                    }
-                    placeholder="077 123 4567"
-                    className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    value={newClient.whatsapp_number}
-                    onChange={(e) =>
-                      setNewClient({
-                        ...newClient,
-                        whatsapp_number: e.target.value,
-                      })
-                    }
-                    placeholder="+94 77 123 4567"
-                    className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Email Address (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={newClient.email}
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, email: e.target.value })
-                    }
-                    placeholder="contact@acme.example.lk"
-                    className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job Title *
-            </label>
-            <input
-              {...register("title")}
-              placeholder="e.g. November social media campaign"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-            {errors.title && (
-              <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Type *
-              </label>
-              <select
-                {...register("job_type")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-              >
-                {JOB_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Agreed Price (LKR)
-              </label>
-              <input
-                {...register("agreed_price")}
-                type="number"
-                placeholder="85000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
-
-          {profiles.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Assign To
-              </label>
-              <select
-                {...register("assigned_to")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-              >
-                <option value="">Unassigned</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name} ({ROLE_LABELS[p.role as UserRole] || p.role})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Visit Date
-              </label>
-              <input
-                {...register("visit_date")}
-                type="datetime-local"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Deadline
-              </label>
-              <input
-                {...register("deadline")}
-                type="datetime-local"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Visit Location
-            </label>
-            <input
-              {...register("visit_location")}
-              placeholder="e.g. Colombo 03 / Online"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Brief / Notes
-            </label>
-            <textarea
-              {...register("brief")}
-              rows={3}
-              placeholder="Describe the client's requirements..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus size={16} />
-                  Create Job
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </OperationDialog>
   );
 }

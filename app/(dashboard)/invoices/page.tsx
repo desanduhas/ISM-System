@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth/get-user";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import InvoicesClient from "./invoices-client";
+import InvoicesClient, { type InvoicesClientProps } from "./invoices-client";
 
 export default async function InvoicesPage() {
   let profile;
@@ -16,23 +16,25 @@ export default async function InvoicesPage() {
     redirect("/");
   }
 
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
   const [
     { data: invoices },
     { data: eligibleJobs },
     { data: clients },
   ] = await Promise.all([
-    admin
+    supabase
       .from("invoices")
       .select("*, client:clients(id, company_name, contact_name, phone, email), job:jobs(id, job_number, title)")
-      .order("created_at", { ascending: false }),
-    admin
+      .order("created_at", { ascending: false })
+      .overrideTypes<InvoicesClientProps["invoices"], { merge: false }>(),
+    supabase
       .from("jobs")
       .select("id, job_number, title, agreed_price, current_stage, client_id, client:clients(id, company_name)")
       .in("current_stage", ["APPROVED", "INVOICE_READY"])
-      .order("updated_at", { ascending: false }),
-    admin
+      .order("updated_at", { ascending: false })
+      .overrideTypes<InvoicesClientProps["eligibleJobs"], { merge: false }>(),
+    supabase
       .from("clients")
       .select("id, company_name, contact_name")
       .eq("is_active", true)
@@ -41,9 +43,9 @@ export default async function InvoicesPage() {
 
   return (
     <InvoicesClient
-      invoices={(invoices as any) || []}
-      eligibleJobs={(eligibleJobs as any) || []}
-      clients={(clients as any) || []}
+      invoices={invoices || []}
+      eligibleJobs={eligibleJobs || []}
+      clients={clients || []}
       profile={profile}
     />
   );

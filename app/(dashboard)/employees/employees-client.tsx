@@ -1,5 +1,9 @@
 "use client";
 
+import ModuleMetrics from "@/app/(dashboard)/_components/module-metrics";
+
+import OperationDialog from "@/app/(dashboard)/_components/operation-dialog";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -11,11 +15,10 @@ import {
   Phone,
   Mail,
   Edit2,
+  Trash2,
   CheckCircle,
-  XCircle,
   Loader2,
   X,
-  ShieldCheck,
   Activity,
 } from "lucide-react";
 import { ROLE_LABELS, formatSriLankanPhone } from "@/lib/utils";
@@ -30,6 +33,7 @@ export interface EmployeeWithStats extends Profile {
 interface EmployeesClientProps {
   initialEmployees: EmployeeWithStats[];
   departments: Department[];
+  currentEmployeeId: string;
 }
 
 const ROLES: UserRole[] = [
@@ -40,17 +44,11 @@ const ROLES: UserRole[] = [
   "FINANCE",
 ];
 
-const ROLE_COLORS: Record<UserRole, string> = {
-  MANAGEMENT: "bg-purple-100 text-purple-800 border-purple-200",
-  MARKETING_CUSTOMER_CARE: "bg-blue-100 text-blue-800 border-blue-200",
-  GRAPHIC_DESIGNER: "bg-pink-100 text-pink-800 border-pink-200",
-  CAPTURING: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  FINANCE: "bg-amber-100 text-amber-800 border-amber-200",
-};
 
 export default function EmployeesClient({
   initialEmployees,
   departments,
+  currentEmployeeId,
 }: EmployeesClientProps) {
   const router = useRouter();
   const [employees, setEmployees] = useState<EmployeeWithStats[]>(initialEmployees);
@@ -59,6 +57,9 @@ export default function EmployeesClient({
   const [selectedDept, setSelectedDept] = useState<string>("ALL");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithStats | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeWithStats | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Filtered employees
@@ -103,6 +104,35 @@ export default function EmployeesClient({
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to toggle status");
+    }
+  }
+
+  async function deleteEmployee() {
+    if (!employeeToDelete || employeeToDelete.id === currentEmployeeId || deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch("/api/employees", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: employeeToDelete.id }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || body?.success !== true) {
+        throw new Error(body?.error || (res.redirected ? "Your session has expired. Sign in again." : "Could not confirm the deletion."));
+      }
+      setEmployees((current) => current.filter((employee) => employee.id !== employeeToDelete.id));
+      setEmployeeToDelete(null);
+      if (body.warning) {
+        toast.warning(body.warning);
+      } else {
+        toast.success(`${employeeToDelete.full_name} was deleted.`);
+      }
+      router.refresh();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Could not delete this employee.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -195,16 +225,11 @@ export default function EmployeesClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="operations-module module-employees">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="module-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Employee & Role Management
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Oversee team members, assign operational roles, and manage active workloads.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Employees</h1>
         </div>
 
         <button
@@ -217,64 +242,22 @@ export default function EmployeesClient({
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Total Team
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{totalEmployees}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-            <CheckCircle size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Active Members
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{activeEmployees}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-            <Building2 size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Departments
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{departments.length}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
-            <Activity size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Assigned Active Jobs
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{totalActiveJobs}</p>
-          </div>
-        </div>
-      </div>
+      <ModuleMetrics items={[
+        { label: "Team members", value: totalEmployees, icon: Users },
+        { label: "Active members", value: activeEmployees, icon: CheckCircle },
+        { label: "Departments", value: departments.length, icon: Building2 },
+        { label: "Assigned jobs", value: totalActiveJobs, icon: Activity },
+      ]} />
 
       {/* Filters & Search */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
+      <div className="module-toolbar bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search by name, email, or WhatsApp"
             placeholder="Search by name, email, or WhatsApp..."
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
@@ -282,6 +265,7 @@ export default function EmployeesClient({
 
         <div className="flex flex-wrap items-center gap-3">
           <select
+            aria-label="Employee role"
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -295,6 +279,8 @@ export default function EmployeesClient({
           </select>
 
           <select
+
+            aria-label="Department"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -311,16 +297,16 @@ export default function EmployeesClient({
 
       {/* Employees Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
+        <div className="module-table-scroll overflow-x-auto">
+          <table className="module-table w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3.5">Employee</th>
-                <th className="px-6 py-3.5">Role</th>
-                <th className="px-6 py-3.5">Department</th>
-                <th className="px-6 py-3.5">Workload</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Actions</th>
+                <th scope="col" className="px-6 py-3.5">Employee</th>
+                <th scope="col" className="px-6 py-3.5">Role</th>
+                <th scope="col" className="px-6 py-3.5">Department</th>
+                <th scope="col" className="px-6 py-3.5">Workload</th>
+                <th scope="col" className="px-6 py-3.5">Status</th>
+                <th scope="col" className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -332,9 +318,6 @@ export default function EmployeesClient({
                 </tr>
               ) : (
                 filteredEmployees.map((emp) => {
-                  const roleBadgeClass =
-                    ROLE_COLORS[emp.role] || "bg-slate-100 text-slate-800 border-slate-200";
-
                   // Workload badge styling
                   let workloadBadge = "bg-emerald-50 text-emerald-700 border-emerald-200";
                   if (emp.active_jobs_count >= 5) {
@@ -350,9 +333,9 @@ export default function EmployeesClient({
                         !emp.is_active ? "opacity-60 bg-slate-50/50" : ""
                       }`}
                     >
-                      <td className="px-6 py-4">
+                      <td data-label="Employee" className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-sm">
+                          <div className="employee-monogram">
                             {emp.full_name
                               .split(" ")
                               .map((n) => n[0])
@@ -383,19 +366,19 @@ export default function EmployeesClient({
                         </div>
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td data-label="Role" className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleBadgeClass}`}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-slate-100 text-slate-800 border-slate-200"
                         >
                           {ROLE_LABELS[emp.role] || emp.role}
                         </span>
                       </td>
 
-                      <td className="px-6 py-4 text-slate-700">
+                      <td data-label="Department" className="px-6 py-4 text-slate-700">
                         {emp.department?.name || "—"}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td data-label="Workload" className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${workloadBadge}`}
@@ -407,7 +390,7 @@ export default function EmployeesClient({
                         </div>
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td data-label="Status" className="px-6 py-4">
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -422,14 +405,28 @@ export default function EmployeesClient({
                         </label>
                       </td>
 
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setEditingEmployee(emp)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors border border-slate-200"
-                        >
-                          <Edit2 size={13} />
-                          Edit
-                        </button>
+                      <td data-label="Actions" className="px-6 py-4 text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            onClick={() => setEditingEmployee(emp)}
+                            aria-label={`Edit ${emp.full_name}`}
+                            className="inline-flex min-h-10 items-center gap-1 px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 rounded-lg border border-slate-200"
+                          >
+                            <Edit2 size={13} /> Edit
+                          </button>
+                          {emp.id !== currentEmployeeId && (
+                            <button
+                              aria-label={`Delete ${emp.full_name}`}
+                              onClick={() => {
+                                setDeleteError("");
+                                setEmployeeToDelete(emp);
+                              }}
+                              className="inline-flex min-h-10 items-center gap-1 px-3 text-xs font-medium text-red-700 hover:bg-red-50 rounded-lg border border-red-200"
+                            >
+                              <Trash2 size={13} /> Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -440,252 +437,291 @@ export default function EmployeesClient({
         </div>
       </div>
 
+      {employeeToDelete && (
+        <OperationDialog
+          titleId="delete-employee-dialog"
+          onDismiss={() => { if (!deleting) setEmployeeToDelete(null); }}
+          className="max-w-md p-6 space-y-4"
+        >
+          <h2 id="delete-employee-dialog">Delete employee?</h2>
+          <p className="text-sm text-slate-700">
+            This will permanently delete <strong>{employeeToDelete.full_name}</strong> ({employeeToDelete.email}), their sign-in access, and their personal notifications.
+          </p>
+          {deleteError && <p role="alert" className="text-sm text-red-700">{deleteError}</p>}
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              onClick={() => setEmployeeToDelete(null)}
+              disabled={deleting}
+              className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={deleteEmployee}
+              disabled={deleting}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-red-700 px-4 text-sm font-medium text-white hover:bg-red-800"
+            >
+              {deleting && <Loader2 size={15} className="animate-spin" />}
+              {deleting ? "Deleting…" : "Delete employee"}
+            </button>
+          </div>
+        </OperationDialog>
+      )}
+
       {/* Add Employee Dialog Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <OperationDialog titleId="new-employee-dialog" onDismiss={() => setIsAddOpen(false)} className="w-full max-w-lg">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div>
+              <h2 id="new-employee-dialog" className="font-semibold text-slate-900">Add Team Member</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Create an account and assign operational role
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close dialog"
+              onClick={() => setIsAddOpen(false)}
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
+            <div>
+              <label htmlFor="employees-full-name-1" className="block text-sm font-medium text-slate-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                id="employees-full-name-1"
+                name="full_name"
+                required
+                placeholder="e.g. Kasun Perera"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="employees-work-email-2" className="block text-sm font-medium text-slate-700 mb-1">
+                Work Email *
+              </label>
+              <input
+                id="employees-work-email-2"
+                name="email"
+                type="email"
+                required
+                placeholder="kasun@ismflow.lk"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="employees-initial-password-3" className="block text-sm font-medium text-slate-700 mb-1">
+                Initial Password *
+              </label>
+              <input
+                id="employees-initial-password-3"
+                name="password"
+                type="password"
+                required
+                minLength={6}
+                placeholder="At least 6 characters"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <h2 className="font-semibold text-slate-900">Add Team Member</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Create an account and assign operational role
-                </p>
+                <label htmlFor="employees-role-4" className="block text-sm font-medium text-slate-700 mb-1">
+                  Role *
+                </label>
+                <select
+                  id="employees-role-4"
+                  name="role"
+                  required
+                  defaultValue="GRAPHIC_DESIGNER"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div>
+                <label htmlFor="employees-department-5" className="block text-sm font-medium text-slate-700 mb-1">
+                  Department
+                </label>
+                <select
+                  id="employees-department-5"
+                  name="department_id"
+                  defaultValue=""
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">No Department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="employees-whatsapp-number-with-sri-lanka-prefix-94-6" className="block text-sm font-medium text-slate-700 mb-1">
+                WhatsApp Number (with Sri Lanka prefix +94)
+              </label>
+              <input
+                id="employees-whatsapp-number-with-sri-lanka-prefix-94-6"
+                name="whatsapp_number"
+                placeholder="+94 77 123 4567"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-3">
               <button
                 type="button"
                 onClick={() => setIsAddOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+                disabled={loading}
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
-                <X size={18} />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </button>
             </div>
-
-            <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  name="full_name"
-                  required
-                  placeholder="e.g. Kasun Perera"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Work Email *
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="kasun@ismflow.lk"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Initial Password *
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="At least 6 characters"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Role *
-                  </label>
-                  <select
-                    name="role"
-                    required
-                    defaultValue="GRAPHIC_DESIGNER"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Department
-                  </label>
-                  <select
-                    name="department_id"
-                    defaultValue=""
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="">No Department</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  WhatsApp Number (with Sri Lanka prefix +94)
-                </label>
-                <input
-                  name="whatsapp_number"
-                  placeholder="+94 77 123 4567"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(false)}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </OperationDialog>
       )}
 
       {/* Edit Employee Modal */}
       {editingEmployee && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <OperationDialog titleId="edit-employee-dialog" onDismiss={() => setEditingEmployee(null)} className="w-full max-w-lg">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div>
+              <h2 id="edit-employee-dialog" className="font-semibold text-slate-900">Edit Team Member</h2>
+              <p className="text-xs text-slate-500 mt-0.5">{editingEmployee.email}</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close dialog"
+              onClick={() => setEditingEmployee(null)}
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <form onSubmit={handleEditEmployee} className="p-6 space-y-4">
+            <div>
+              <label htmlFor="employees-full-name-7" className="block text-sm font-medium text-slate-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                id="employees-full-name-7"
+                name="full_name"
+                required
+                defaultValue={editingEmployee.full_name}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <h2 className="font-semibold text-slate-900">Edit Team Member</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{editingEmployee.email}</p>
+                <label htmlFor="employees-role-8" className="block text-sm font-medium text-slate-700 mb-1">
+                  Role *
+                </label>
+                <select
+                  id="employees-role-8"
+                  name="role"
+                  required
+                  defaultValue={editingEmployee.role}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div>
+                <label htmlFor="employees-department-9" className="block text-sm font-medium text-slate-700 mb-1">
+                  Department
+                </label>
+                <select
+                  id="employees-department-9"
+                  name="department_id"
+                  defaultValue={editingEmployee.department_id || ""}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">No Department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="employees-whatsapp-number-10" className="block text-sm font-medium text-slate-700 mb-1">
+                WhatsApp Number
+              </label>
+              <input
+                id="employees-whatsapp-number-10"
+                name="whatsapp_number"
+                defaultValue={editingEmployee.whatsapp_number || ""}
+                placeholder="+94 77 123 4567"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-3">
               <button
                 type="button"
                 onClick={() => setEditingEmployee(null)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+                disabled={loading}
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
-                <X size={18} />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </button>
             </div>
-
-            <form onSubmit={handleEditEmployee} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  name="full_name"
-                  required
-                  defaultValue={editingEmployee.full_name}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Role *
-                  </label>
-                  <select
-                    name="role"
-                    required
-                    defaultValue={editingEmployee.role}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Department
-                  </label>
-                  <select
-                    name="department_id"
-                    defaultValue={editingEmployee.department_id || ""}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="">No Department</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  WhatsApp Number
-                </label>
-                <input
-                  name="whatsapp_number"
-                  defaultValue={editingEmployee.whatsapp_number || ""}
-                  placeholder="+94 77 123 4567"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingEmployee(null)}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </OperationDialog>
       )}
     </div>
   );

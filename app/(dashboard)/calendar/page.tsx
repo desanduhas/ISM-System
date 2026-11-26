@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/get-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import CalendarClient, { CalendarJob } from "./calendar-client";
-import type { Department } from "@/lib/types";
 
 export const metadata = {
   title: "Operations Calendar | ISM Flow",
@@ -51,9 +50,9 @@ export default async function CalendarPage() {
   // 2. Fetch jobs, clients, employees, and departments concurrently
   const [
     { data: jobs, error: jobsErr },
-    { data: clients, error: clientsErr },
-    { data: employees, error: empErr },
-    { data: departments, error: deptsErr },
+    { data: clients },
+    { data: employees },
+    { data: departments },
   ] = await Promise.all([
     jobsQuery,
     admin
@@ -77,14 +76,12 @@ export default async function CalendarPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <CalendarClient
-        initialJobs={(jobs as unknown as CalendarJob[]) || []}
-        clients={clients || []}
-        employees={employees || []}
-        departments={departments || []}
-        currentUser={profile}
-      />
-    </div>
+    <CalendarClient
+      initialJobs={(jobs as unknown as CalendarJob[]) || []}
+      clients={clients || []}
+      employees={employees || []}
+      departments={departments || []}
+      currentUser={profile}
+    />
   );
 }

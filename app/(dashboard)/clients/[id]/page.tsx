@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/get-user";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import ClientDetailClient from "./client-detail-client";
-import type { Client, Invoice, Payment } from "@/lib/types";
+import type { Client, Payment } from "@/lib/types";
 
 export const metadata = {
   title: "Client Profile & History | ISM Flow",
@@ -12,18 +12,17 @@ export const metadata = {
 export default async function ClientDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
-  let profile;
   try {
-    profile = await requireAuth();
+    await requireAuth();
   } catch {
     redirect("/login");
   }
 
   const { id } = await props.params;
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
   // 1. Fetch client
-  const { data: client, error: clientErr } = await admin
+  const { data: client, error: clientErr } = await supabase
     .from("clients")
     .select("*")
     .eq("id", id)
@@ -34,7 +33,7 @@ export default async function ClientDetailPage(props: {
   }
 
   // 2. Fetch jobs associated with client
-  const { data: jobs, error: jobsErr } = await admin
+  const { data: jobs, error: jobsErr } = await supabase
     .from("jobs")
     .select(`
       *,
@@ -48,7 +47,7 @@ export default async function ClientDetailPage(props: {
   }
 
   // 3. Fetch invoices for client
-  const { data: invoices, error: invErr } = await admin
+  const { data: invoices, error: invErr } = await supabase
     .from("invoices")
     .select("*")
     .eq("client_id", id)
@@ -63,14 +62,14 @@ export default async function ClientDetailPage(props: {
   // 4. Fetch payments
   let payments: Payment[] = [];
   if (invoiceIds.length > 0) {
-    const { data: paymentsData, error: payErr } = await admin
+    const { data: paymentsData, error: payErr } = await supabase
       .from("payments")
       .select(`
         *,
         invoice:invoices(invoice_number)
       `)
       .in("invoice_id", invoiceIds)
-      .order("created_at", { ascending: false });
+      .order("reported_at", { ascending: false });
 
     if (!payErr && paymentsData) {
       payments = paymentsData as unknown as Payment[];
@@ -78,14 +77,11 @@ export default async function ClientDetailPage(props: {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <ClientDetailClient
-        client={client as Client}
-        jobs={(jobs as unknown as Parameters<typeof ClientDetailClient>[0]["jobs"]) || []}
-        invoices={invoices || []}
-        payments={payments}
-        currentUser={profile}
-      />
-    </div>
+    <ClientDetailClient
+      client={client as Client}
+      jobs={(jobs as unknown as Parameters<typeof ClientDetailClient>[0]["jobs"]) || []}
+      invoices={invoices || []}
+      payments={payments}
+    />
   );
 }

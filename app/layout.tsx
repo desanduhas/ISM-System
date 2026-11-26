@@ -5,8 +5,8 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "ISM Flow — Marketing Operations",
-  description: "Complete marketing agency operations platform for Sri Lanka.",
-  icons: { icon: "/favicon.svg" },
+  description: "The operations workspace for I Shop Marketing.",
+  icons: { icon: "/brand/favicon.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

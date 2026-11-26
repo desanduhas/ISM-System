@@ -13,8 +13,8 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
-import { formatDate, formatDateTime, STAGE_LABELS, STAGE_COLORS } from "@/lib/utils";
-import type { Profile, JobStage } from "@/lib/types";
+import { formatDateTime, STAGE_LABELS, STAGE_COLORS } from "@/lib/utils";
+import type { JobStage } from "@/lib/types";
 import { toast } from "sonner";
 
 interface NotificationItem {
@@ -37,12 +37,10 @@ interface NotificationItem {
 
 interface NotificationsClientProps {
   initialNotifications: Array<Record<string, unknown>>;
-  profile: Profile;
 }
 
 export default function NotificationsClient({
   initialNotifications,
-  profile,
 }: NotificationsClientProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(
     (initialNotifications as unknown as NotificationItem[]) || []
@@ -113,7 +111,7 @@ export default function NotificationsClient({
           n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
         )
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to update notification");
     }
   }
@@ -131,15 +129,15 @@ export default function NotificationsClient({
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="operations-module module-notifications">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="module-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Bell size={24} className="text-purple-600" /> Notifications
+            Notifications
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            You have {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
+            {unreadCount} unread of {notifications.length}
           </p>
         </div>
 
@@ -160,9 +158,10 @@ export default function NotificationsClient({
       </div>
 
       {/* Filter Tabs & Dropdown */}
-      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-gray-200 pb-3">
+      <div className="module-toolbar flex items-center justify-between gap-3 flex-wrap border-b border-gray-200 pb-3">
         <div className="flex space-x-2">
           <button
+            aria-pressed={filter === "all"}
             onClick={() => setFilter("all")}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === "all"
@@ -173,6 +172,7 @@ export default function NotificationsClient({
             All ({notifications.length})
           </button>
           <button
+            aria-pressed={filter === "unread"}
             onClick={() => setFilter("unread")}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === "unread"
@@ -190,6 +190,7 @@ export default function NotificationsClient({
               <Filter size={12} /> Category:
             </span>
             <select
+              aria-label="Notification category"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="text-xs px-2.5 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"

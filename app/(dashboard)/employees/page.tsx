@@ -27,8 +27,8 @@ export default async function EmployeesPage() {
   // Fetch profiles, departments, active job counts
   const [
     { data: profiles, error: profilesErr },
-    { data: departments, error: deptsErr },
-    { data: activeJobs, error: jobsErr },
+    { data: departments },
+    { data: activeJobs },
   ] = await Promise.all([
     admin
       .from("profiles")
@@ -76,11 +76,10 @@ export default async function EmployeesPage() {
   }));
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <EmployeesClient
-        initialEmployees={employeesWithStats}
-        departments={departments || []}
-      />
-    </div>
+    <EmployeesClient
+      initialEmployees={employeesWithStats}
+      departments={departments || []}
+      currentEmployeeId={profile.id}
+    />
   );
 }

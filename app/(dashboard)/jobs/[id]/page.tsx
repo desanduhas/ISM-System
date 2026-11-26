@@ -60,11 +60,5 @@ export default async function JobDetailPage({
     redirect("/jobs");
   }
 
-  const { data: profiles } = await admin
-    .from("profiles")
-    .select("id, full_name, role")
-    .eq("is_active", true)
-    .order("full_name");
-
-  return <JobDetailClient job={job} profile={profile} allProfiles={profiles || []} />;
+  return <JobDetailClient job={job} profile={profile} />;
 }

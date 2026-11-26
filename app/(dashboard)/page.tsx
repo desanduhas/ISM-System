@@ -25,6 +25,7 @@ export default async function DashboardPage() {
       { count: pendingInvoices },
       { count: pendingPayments },
       { data: recentJobs },
+      { data: upcomingJobs },
     ] = await Promise.all([
       admin.from("jobs").select("id", { count: "exact", head: true }).not("current_stage", "in", "(COMPLETED,CANCELLED)"),
       admin.from("jobs").select("id", { count: "exact", head: true }).eq("current_stage", "READY_FOR_REVIEW"),
@@ -32,6 +33,10 @@ export default async function DashboardPage() {
       admin.from("jobs").select("id", { count: "exact", head: true }).eq("current_stage", "APPROVED"),
       admin.from("payments").select("id", { count: "exact", head: true }).eq("status", "REPORTED"),
       admin.from("jobs").select("*, client:clients(company_name)").not("current_stage", "in", "(COMPLETED,CANCELLED)").order("updated_at", { ascending: false }).limit(8),
+      admin.from("jobs").select("id, title, job_number, deadline, current_stage, client:clients(company_name)")
+        .not("current_stage", "in", "(COMPLETED,CANCELLED)")
+        .gte("deadline", new Date().toISOString())
+        .order("deadline").limit(4),
     ]);
 
     return (
@@ -44,6 +49,7 @@ export default async function DashboardPage() {
           pendingPayments: pendingPayments || 0,
         }}
         recentJobs={recentJobs || []}
+        upcomingJobs={upcomingJobs || []}
         profile={profile}
       />
     );

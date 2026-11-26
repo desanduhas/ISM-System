@@ -1,5 +1,9 @@
 "use client";
 
+import ModuleMetrics from "@/app/(dashboard)/_components/module-metrics";
+
+import OperationDialog from "@/app/(dashboard)/_components/operation-dialog";
+
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,9 +15,7 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
-  AlertCircle,
   DollarSign,
-  ChevronRight,
   ExternalLink,
   X,
 } from "lucide-react";
@@ -21,8 +23,11 @@ import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Invoice, Client, Job, Profile, InvoiceLineItem } from "@/lib/types";
 
-interface InvoicesClientProps {
-  invoices: Array<Invoice & { client?: Client; job?: Job }>;
+export interface InvoicesClientProps {
+  invoices: Array<Omit<Invoice, "client" | "job"> & {
+    client?: Pick<Client, "id" | "company_name" | "contact_name" | "phone" | "email">;
+    job?: Pick<Job, "id" | "job_number" | "title">;
+  }>;
   eligibleJobs: Array<{
     id: string;
     job_number: string;
@@ -205,7 +210,7 @@ export default function InvoicesClient({
   };
 
   // Status update handler (issued, sent, paid, etc.)
-  const handleStatusChange = async (invoiceId: string, newStatus: string) => {
+  const handleStatusChange = async (invoiceId: string, newStatus: Invoice["status"]) => {
     try {
       const res = await fetch(`/api/invoices/${invoiceId}`, {
         method: "PATCH",
@@ -216,7 +221,7 @@ export default function InvoicesClient({
       if (!res.ok) throw new Error(json.error || "Failed to update status");
 
       toast.success(`Invoice marked as ${newStatus}`);
-      setInvoices(invoices.map((inv) => (inv.id === invoiceId ? { ...inv, status: newStatus as any } : inv)));
+      setInvoices((current) => current.map((inv) => (inv.id === invoiceId ? { ...inv, status: newStatus } : inv)));
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Status update failed");
@@ -224,14 +229,11 @@ export default function InvoicesClient({
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="operations-module module-invoices">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="module-heading flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Invoices & Billing</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Generate, manage, and track invoices for client projects across Sri Lanka.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Invoices</h1>
         </div>
         {canManageInvoices && (
           <button
@@ -245,55 +247,21 @@ export default function InvoicesClient({
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invoiced</p>
-            <p className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats.totalBilled)}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-            <DollarSign size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Collected / Paid</p>
-            <p className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency(stats.paidTotal)}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <CheckCircle2 size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Awaiting Payment</p>
-            <p className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(stats.pendingTotal)}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-            <Clock size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Draft Invoices</p>
-            <p className="text-xl font-bold text-slate-700 mt-1">{stats.draftCount}</p>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-            <FileText size={20} />
-          </div>
-        </div>
-      </div>
+      <ModuleMetrics items={[
+        { label: "Total invoiced", value: formatCurrency(stats.totalBilled), icon: DollarSign },
+        { label: "Paid", value: formatCurrency(stats.paidTotal), icon: CheckCircle2 },
+        { label: "Awaiting payment", value: formatCurrency(stats.pendingTotal), icon: Clock },
+        { label: "Draft invoices", value: stats.draftCount, icon: FileText },
+      ]} />
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="module-toolbar bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Status Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
           {["ALL", "DRAFT", "ISSUED", "SENT", "PAID", "CANCELLED"].map((status) => (
             <button
               key={status}
+              aria-pressed={statusFilter === status}
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                 statusFilter === status
@@ -311,6 +279,7 @@ export default function InvoicesClient({
           <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
+            aria-label="Search invoice, client, job"
             placeholder="Search invoice, client, job..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -321,17 +290,17 @@ export default function InvoicesClient({
 
       {/* Invoices List / Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="module-table-scroll overflow-x-auto">
+          <table className="module-table w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-semibold">
               <tr>
-                <th className="px-5 py-3.5">Invoice #</th>
-                <th className="px-5 py-3.5">Client</th>
-                <th className="px-5 py-3.5">Job Ref</th>
-                <th className="px-5 py-3.5">Date / Due</th>
-                <th className="px-5 py-3.5 text-right">Amount</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th scope="col" className="px-5 py-3.5">Invoice #</th>
+                <th scope="col" className="px-5 py-3.5">Client</th>
+                <th scope="col" className="px-5 py-3.5">Job Ref</th>
+                <th scope="col" className="px-5 py-3.5">Date / Due</th>
+                <th scope="col" className="px-5 py-3.5 text-right">Amount</th>
+                <th scope="col" className="px-5 py-3.5">Status</th>
+                <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -346,14 +315,14 @@ export default function InvoicesClient({
               ) : (
                 filteredInvoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap">
+                    <td data-label="Invoice #" className="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap">
                       {inv.invoice_number || "DRAFT"}
                     </td>
-                    <td className="px-5 py-4">
+                    <td data-label="Client" className="px-5 py-4">
                       <div className="font-medium text-slate-900">{inv.client?.company_name || "—"}</div>
                       <div className="text-xs text-slate-500">{inv.client?.contact_name}</div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td data-label="Job Ref" className="px-5 py-4">
                       {inv.job ? (
                         <Link
                           href={`/jobs/${inv.job.id}`}
@@ -367,17 +336,17 @@ export default function InvoicesClient({
                       )}
                       <div className="text-xs text-slate-500 truncate max-w-xs">{inv.job?.title}</div>
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
+                    <td data-label="Date / Due" className="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
                       <div>Issued: {formatDate(inv.created_at)}</div>
                       <div className="text-slate-400">Due: {formatDate(inv.due_date)}</div>
                     </td>
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                    <td data-label="Amount" className="px-5 py-4 text-right whitespace-nowrap">
                       <div className="font-bold text-slate-900">{formatCurrency(inv.total)}</div>
                       {inv.tax_amount > 0 && (
                         <div className="text-xs text-slate-400">Tax: {formatCurrency(inv.tax_amount)}</div>
                       )}
                     </td>
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td data-label="Status" className="px-5 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                           STATUS_COLORS[inv.status] || "bg-slate-100 text-slate-700 border-slate-200"
@@ -386,7 +355,7 @@ export default function InvoicesClient({
                         {inv.status}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right whitespace-nowrap">
+                    <td data-label="Actions" className="px-5 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         {/* Download PDF button */}
                         <a
@@ -403,7 +372,7 @@ export default function InvoicesClient({
                         {canManageInvoices && inv.status !== "PAID" && inv.status !== "CANCELLED" && (
                           <select
                             value={inv.status}
-                            onChange={(e) => handleStatusChange(inv.id, e.target.value)}
+                            onChange={(e) => handleStatusChange(inv.id, e.target.value as Invoice["status"])}
                             className="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
                           >
                             <option value="DRAFT">DRAFT</option>
@@ -425,213 +394,222 @@ export default function InvoicesClient({
 
       {/* Create Invoice Dialog Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-5 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <OperationDialog titleId="new-invoice-dialog" onDismiss={() => setIsCreateOpen(false)} className="max-w-2xl w-full p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h3 id="new-invoice-dialog" className="text-lg font-bold text-slate-900">Create New Invoice</h3>
+              <p className="text-xs text-slate-500">Bill a client for approved marketing & production work</p>
+            </div>
+            <button
+              aria-label="Close dialog"
+              onClick={() => setIsCreateOpen(false)}
+              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <form onSubmit={handleCreateInvoice} className="space-y-4">
+            {/* Job & Client Selectors */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Create New Invoice</h3>
-                <p className="text-xs text-slate-500">Bill a client for approved marketing & production work</p>
+                <label htmlFor="invoices-select-approved-job-1" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Select Approved Job *
+                </label>
+                <select
+                  id="invoices-select-approved-job-1"
+                  value={selectedJobId}
+                  onChange={(e) => handleJobSelect(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                >
+                  <option value="">-- Choose Job --</option>
+                  {eligibleJobs.map((job) => (
+                    <option key={job.id} value={job.id}>
+                      {job.job_number} - {job.title} ({job.client?.company_name || "Client"})
+                    </option>
+                  ))}
+                </select>
+                {eligibleJobs.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    No jobs currently in APPROVED or INVOICE_READY stage.
+                  </p>
+                )}
               </div>
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X size={20} />
-              </button>
+
+              <div>
+                <label htmlFor="invoices-client-2" className="block text-xs font-semibold text-slate-700 mb-1">Client *</label>
+                <select
+                  id="invoices-client-2"
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                >
+                  <option value="">-- Choose Client --</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.company_name} ({c.contact_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <form onSubmit={handleCreateInvoice} className="space-y-4">
-              {/* Job & Client Selectors */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Select Approved Job *
-                  </label>
-                  <select
-                    value={selectedJobId}
-                    onChange={(e) => handleJobSelect(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                  >
-                    <option value="">-- Choose Job --</option>
-                    {eligibleJobs.map((job) => (
-                      <option key={job.id} value={job.id}>
-                        {job.job_number} - {job.title} ({job.client?.company_name || "Client"})
-                      </option>
-                    ))}
-                  </select>
-                  {eligibleJobs.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      No jobs currently in APPROVED or INVOICE_READY stage.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Client *</label>
-                  <select
-                    value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                  >
-                    <option value="">-- Choose Client --</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.company_name} ({c.contact_name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Due Date & Instructions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Tax Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-
-              {/* Line Items */}
+            {/* Due Date & Instructions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Line Items
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addLineItem}
-                    className="text-xs text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
-                  >
-                    <Plus size={14} /> Add Item
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {lineItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                      <input
-                        type="text"
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(idx, "description", e.target.value)}
-                        required
-                        className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(idx, "quantity", Number(e.target.value))}
-                        required
-                        className="w-16 px-2 py-1.5 text-xs border border-slate-200 rounded text-right bg-white"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Unit Price"
-                        min="0"
-                        value={item.unit_price}
-                        onChange={(e) => updateLineItem(idx, "unit_price", Number(e.target.value))}
-                        required
-                        className="w-28 px-2 py-1.5 text-xs border border-slate-200 rounded text-right bg-white"
-                      />
-                      <div className="w-24 text-right text-xs font-bold text-slate-700">
-                        {formatCurrency(item.amount)}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeLineItem(idx)}
-                        disabled={lineItems.length === 1}
-                        className="text-slate-400 hover:text-rose-500 disabled:opacity-30 p-1"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <label htmlFor="invoices-due-date-3" className="block text-xs font-semibold text-slate-700 mb-1">Due Date</label>
+                <input
+                  id="invoices-due-date-3"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
-
-              {/* Discount and Payment Instructions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Discount Amount (LKR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={discount}
-                    onChange={(e) => setDiscount(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Payment Instructions
-                  </label>
-                  <input
-                    type="text"
-                    value={paymentInstructions}
-                    onChange={(e) => setPaymentInstructions(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+              <div>
+                <label htmlFor="invoices-tax-rate-4" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tax Rate (%)
+                </label>
+                <input
+                  id="invoices-tax-rate-4"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
+            </div>
 
-              {/* Calculation Summary */}
-              <div className="bg-purple-50/60 p-4 rounded-xl border border-purple-100 flex justify-between items-center text-sm">
-                <div className="space-y-1 text-xs text-slate-600">
-                  <div>Subtotal: <span className="font-semibold text-slate-800">{formatCurrency(subtotal)}</span></div>
-                  {discount > 0 && <div>Discount: <span className="font-semibold text-rose-600">-{formatCurrency(discount)}</span></div>}
-                  {taxAmount > 0 && <div>Tax ({taxRate}%): <span className="font-semibold text-slate-800">{formatCurrency(taxAmount)}</span></div>}
-                </div>
-                <div className="text-right">
-                  <div className="text-xs uppercase tracking-wider text-purple-700 font-bold">Total Due</div>
-                  <div className="text-xl font-extrabold text-purple-900">{formatCurrency(grandTotal)}</div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            {/* Line Items */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Line Items
+                </label>
                 <button
                   type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition"
+                  onClick={addLineItem}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !selectedJobId}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition shadow-sm"
-                >
-                  {submitting ? "Generating..." : "Generate Invoice"}
+                  <Plus size={14} /> Add Item
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
+
+              <div className="space-y-2">
+                {lineItems.map((item, idx) => (
+                  <div key={idx} className="invoice-line-item flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <input
+                      type="text"
+                      aria-label="Description"
+                      placeholder="Description"
+                      value={item.description}
+                      onChange={(e) => updateLineItem(idx, "description", e.target.value)}
+                      required
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white"
+                    />
+                    <input
+                      type="number"
+                      aria-label="Qty"
+                      placeholder="Qty"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateLineItem(idx, "quantity", Number(e.target.value))}
+                      required
+                      className="w-16 px-2 py-1.5 text-xs border border-slate-200 rounded text-right bg-white"
+                    />
+                    <input
+                      type="number"
+                      aria-label="Unit Price"
+                      placeholder="Unit Price"
+                      min="0"
+                      value={item.unit_price}
+                      onChange={(e) => updateLineItem(idx, "unit_price", Number(e.target.value))}
+                      required
+                      className="w-28 px-2 py-1.5 text-xs border border-slate-200 rounded text-right bg-white"
+                    />
+                    <div className="w-24 text-right text-xs font-bold text-slate-700">
+                      {formatCurrency(item.amount)}
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Remove line item ${idx + 1}`}
+                      onClick={() => removeLineItem(idx)}
+                      disabled={lineItems.length === 1}
+                      className="text-slate-400 hover:text-rose-500 disabled:opacity-30 p-1"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Discount and Payment Instructions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="invoices-discount-amount-lkr-5" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Discount Amount (LKR)
+                </label>
+                <input
+                  id="invoices-discount-amount-lkr-5"
+                  type="number"
+                  min="0"
+                  value={discount}
+                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="invoices-payment-instructions-6" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Payment Instructions
+                </label>
+                <input
+                  id="invoices-payment-instructions-6"
+                  type="text"
+                  value={paymentInstructions}
+                  onChange={(e) => setPaymentInstructions(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Calculation Summary */}
+            <div className="bg-purple-50/60 p-4 rounded-xl border border-purple-100 flex justify-between items-center text-sm">
+              <div className="space-y-1 text-xs text-slate-600">
+                <div>Subtotal: <span className="font-semibold text-slate-800">{formatCurrency(subtotal)}</span></div>
+                {discount > 0 && <div>Discount: <span className="font-semibold text-rose-600">-{formatCurrency(discount)}</span></div>}
+                {taxAmount > 0 && <div>Tax ({taxRate}%): <span className="font-semibold text-slate-800">{formatCurrency(taxAmount)}</span></div>}
+              </div>
+              <div className="text-right">
+                <div className="text-xs uppercase tracking-wider text-purple-700 font-bold">Total Due</div>
+                <div className="text-xl font-extrabold text-purple-900">{formatCurrency(grandTotal)}</div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(false)}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !selectedJobId}
+                className="px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition shadow-sm"
+              >
+                {submitting ? "Generating..." : "Generate Invoice"}
+              </button>
+            </div>
+          </form>
+        </OperationDialog>
       )}
     </div>
   );

@@ -1,110 +1,130 @@
 "use client";
+
 import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import styles from "./login.module.css";
 
 const schema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().trim().email("Enter a valid email address."),
+  password: z.string().min(6, "Enter a password with at least 6 characters."),
 });
 
-type FormData = z.infer<typeof schema>;
+type LoginFields = z.infer<typeof schema>;
 
 export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
-
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFields>({
     resolver: zodResolver(schema),
   });
+  const busy = isSubmitting || redirecting;
 
-  async function onSubmit(data: FormData) {
-    setLoading(true);
-    setError(null);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
+  async function signIn(credentials: LoginFields) {
+    setAuthError(null);
+    try {
+      const { error } = await createClient().auth.signInWithPassword(credentials);
+      if (error) {
+        setAuthError(error.message);
+        return;
+      }
+      setRedirecting(true);
+      router.replace("/");
+      router.refresh();
+    } catch {
+      setAuthError("We couldn’t complete sign-in. Please try again.");
+      setRedirecting(false);
     }
-    router.push("/");
-    router.refresh();
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] px-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5">
-                <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-            </div>
-            <span className="text-white text-xl font-bold tracking-tight">ISM Flow</span>
-          </div>
-          <p className="text-slate-400 text-sm">Marketing Operations Platform</p>
-        </div>
+    <main className={styles.page}>
+      <figure className={styles.editorial}>
+        <Image src="/brand/studio.webp" alt="" fill priority unoptimized sizes="(max-width: 760px) 100vw, 53vw" className={styles.photograph} />
+        <div className={styles.shade} />
+        <Image src="/brand/ism-mark.png" alt="ISM Agency" width={536} height={277} priority unoptimized className={styles.logo} />
+        <figcaption>
+          <p className={styles.motto}>
+            <span>Always</span>{" "}<em>On Time.</em>
+          </p>
+          <p className={styles.credit}>Anuradhapura, Sri Lanka</p>
+        </figcaption>
+      </figure>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-gray-900 text-xl font-semibold mb-1">Sign in to your account</h1>
-          <p className="text-gray-500 text-sm mb-6">Enter your work email and password</p>
+      <section className={styles.panel} aria-labelledby="login-heading">
+        <div className={styles.formColumn}>
+          <header className={styles.header}>
+            <p className={styles.product}>ISM Flow</p>
+            <h1 id="login-heading" className={styles.heading}>Sign in<span>.</span></h1>
+            <p className={styles.intro}>Enter your work email to access the agency workspace.</p>
+          </header>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+          <form
+            className={styles.form}
+            onSubmit={handleSubmit(signIn)}
+            onChange={() => { if (authError) setAuthError(null); }}
+            aria-busy={busy}
+            noValidate
+          >
+            <div className={styles.field}>
+              <label htmlFor="login-email">Email address</label>
               <input
                 {...register("email")}
+                id="login-email"
                 type="email"
-                autoComplete="email"
-                placeholder="you@ismflow.lk"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="you@company.com"
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                required
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+              {errors.email && <p className={styles.error} id="email-error" role="alert">{errors.email.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input
-                {...register("password")}
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                <p className="text-red-600 text-sm">{error}</p>
+            <div className={styles.field}>
+              <label htmlFor="login-password">Password</label>
+              <div className={styles.passwordField}>
+                <input
+                  {...register("password")}
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? "password-error" : undefined}
+                  required
+                />
+                <button
+                  className={styles.reveal}
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-controls="login-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
               </div>
-            )}
+              {errors.password && <p className={styles.error} id="password-error" role="alert">{errors.password.message}</p>}
+            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
-            >
-              {loading ? "Signing in..." : "Sign in"}
+            {authError && <p role="alert" className={styles.authError}>{authError}</p>}
+            <button className={styles.submit} type="submit" disabled={busy}>
+              <span>{busy ? "Signing in…" : "Sign in"}</span>
+              <ArrowRight size={20} strokeWidth={1.6} aria-hidden="true" />
             </button>
           </form>
-
-          <p className="text-center text-xs text-gray-400 mt-6">
-            Contact your system administrator to reset your password.
-          </p>
+          <p className={styles.help}>For password resets, contact your system administrator.</p>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

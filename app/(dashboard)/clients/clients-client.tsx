@@ -1,5 +1,9 @@
 "use client";
 
+import ModuleMetrics from "@/app/(dashboard)/_components/module-metrics";
+
+import OperationDialog from "@/app/(dashboard)/_components/operation-dialog";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -151,16 +155,11 @@ export default function ClientsClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="operations-module module-clients">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="module-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Clients Management
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Directory of corporate accounts, contacts, job history, and billing records.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Clients</h1>
         </div>
 
         {canAddClient && (
@@ -175,52 +174,21 @@ export default function ClientsClient({
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
-            <Building2 size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Total Clients
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{totalClients}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-            <CheckCircle2 size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Active Accounts
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{activeClients}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-            <Briefcase size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              With Ongoing Jobs
-            </p>
-            <p className="text-2xl font-bold text-slate-900">{withActiveJobs}</p>
-          </div>
-        </div>
-      </div>
+      <ModuleMetrics items={[
+        { label: "Total clients", value: totalClients, icon: Building2 },
+        { label: "Active accounts", value: activeClients, icon: CheckCircle2 },
+        { label: "With active jobs", value: withActiveJobs, icon: Briefcase },
+      ]} />
 
       {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="module-toolbar bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search by company, contact, phone, or email"
             placeholder="Search by company, contact, phone, or email..."
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
@@ -228,6 +196,7 @@ export default function ClientsClient({
 
         <div className="flex items-center gap-3">
           <select
+            aria-label="Account status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -240,6 +209,7 @@ export default function ClientsClient({
           {/* View Mode Toggle */}
           <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50">
             <button
+              aria-pressed={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
               className={`p-1.5 rounded-md transition-colors ${
                 viewMode === "grid"
@@ -251,6 +221,7 @@ export default function ClientsClient({
               <LayoutGrid size={16} />
             </button>
             <button
+              aria-pressed={viewMode === "table"}
               onClick={() => setViewMode("table")}
               className={`p-1.5 rounded-md transition-colors ${
                 viewMode === "table"
@@ -281,14 +252,14 @@ export default function ClientsClient({
               return (
                 <div
                   key={client.id}
-                  className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                  className="client-directory-card bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <Link
                           href={`/clients/${client.id}`}
-                          className="font-semibold text-slate-900 text-base hover:text-purple-600 transition-colors line-clamp-1"
+                          className="client-company-link hover:text-purple-600 line-clamp-2"
                         >
                           {client.company_name}
                         </Link>
@@ -404,16 +375,16 @@ export default function ClientsClient({
       ) : (
         /* Table View */
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
+          <div className="module-table-scroll overflow-x-auto">
+            <table className="module-table w-full text-left text-sm text-slate-600">
               <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-3.5">Company</th>
-                  <th className="px-6 py-3.5">Contact Person</th>
-                  <th className="px-6 py-3.5">Contact Details</th>
-                  <th className="px-6 py-3.5">Active Jobs</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  <th scope="col" className="px-6 py-3.5">Company</th>
+                  <th scope="col" className="px-6 py-3.5">Contact Person</th>
+                  <th scope="col" className="px-6 py-3.5">Contact Details</th>
+                  <th scope="col" className="px-6 py-3.5">Active Jobs</th>
+                  <th scope="col" className="px-6 py-3.5">Status</th>
+                  <th scope="col" className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -431,7 +402,7 @@ export default function ClientsClient({
 
                     return (
                       <tr key={client.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-6 py-4">
+                        <td data-label="Company" className="px-6 py-4">
                           <Link
                             href={`/clients/${client.id}`}
                             className="font-semibold text-slate-900 hover:text-purple-600 transition-colors"
@@ -445,11 +416,11 @@ export default function ClientsClient({
                           )}
                         </td>
 
-                        <td className="px-6 py-4 text-slate-700">
+                        <td data-label="Contact Person" className="px-6 py-4 text-slate-700">
                           {client.contact_name}
                         </td>
 
-                        <td className="px-6 py-4">
+                        <td data-label="Contact Details" className="px-6 py-4">
                           <div className="space-y-1 text-xs">
                             {client.email && (
                               <p className="text-slate-600">{client.email}</p>
@@ -467,14 +438,14 @@ export default function ClientsClient({
                           </div>
                         </td>
 
-                        <td className="px-6 py-4">
+                        <td data-label="Active Jobs" className="px-6 py-4">
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
                             <Briefcase size={11} />
                             {client.active_jobs_count || 0} active
                           </span>
                         </td>
 
-                        <td className="px-6 py-4">
+                        <td data-label="Status" className="px-6 py-4">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               client.is_active
@@ -486,7 +457,7 @@ export default function ClientsClient({
                           </span>
                         </td>
 
-                        <td className="px-6 py-4 text-right">
+                        <td data-label="Actions" className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Link
                               href={`/jobs?client_id=${client.id}`}
@@ -524,198 +495,203 @@ export default function ClientsClient({
 
       {/* Client Creation Dialog Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div>
-                <h2 className="font-semibold text-slate-900">Add New Client</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Register a corporate client for project tracking & billing
-                </p>
+        <OperationDialog titleId="new-client-dialog" onDismiss={() => setIsAddOpen(false)} className="w-full max-w-lg">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div>
+              <h2 id="new-client-dialog" className="font-semibold text-slate-900">Add New Client</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Register a corporate client for project tracking & billing
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close dialog"
+              onClick={() => setIsAddOpen(false)}
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <form onSubmit={handleAddClient} className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label htmlFor="clients-company-name-1" className="block text-sm font-medium text-slate-700 mb-1">
+                  Company Name *
+                </label>
+                <input
+                  id="clients-company-name-1"
+                  name="company_name"
+                  required
+                  placeholder="e.g. Ceylon Tea Exports Ltd"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="clients-primary-contact-person-2" className="block text-sm font-medium text-slate-700 mb-1">
+                  Primary Contact Person *
+                </label>
+                <input
+                  id="clients-primary-contact-person-2"
+                  name="contact_name"
+                  required
+                  placeholder="e.g. Priyantha Silva"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="clients-phone-number-3" className="block text-sm font-medium text-slate-700 mb-1">
+                  Phone Number
+                </label>
+                <input
+                  id="clients-phone-number-3"
+                  name="phone"
+                  placeholder="011 234 5678"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="clients-whatsapp-number-4" className="block text-sm font-medium text-slate-700 mb-1">
+                  WhatsApp Number
+                </label>
+                <input
+                  id="clients-whatsapp-number-4"
+                  name="whatsapp_number"
+                  placeholder="+94 77 123 4567"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="clients-email-address-5" className="block text-sm font-medium text-slate-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  id="clients-email-address-5"
+                  name="email"
+                  type="email"
+                  placeholder="billing@ceylontea.lk"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="clients-billing-address-6" className="block text-sm font-medium text-slate-700 mb-1">
+                  Billing Address
+                </label>
+                <input
+                  id="clients-billing-address-6"
+                  name="billing_address"
+                  placeholder="e.g. No. 45 Galle Road, Colombo 03"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="clients-tax-vat-registration-no-7" className="block text-sm font-medium text-slate-700 mb-1">
+                  Tax / VAT Registration No.
+                </label>
+                <input
+                  id="clients-tax-vat-registration-no-7"
+                  name="tax_registration"
+                  placeholder="e.g. 102938475-7000"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label htmlFor="clients-notes-8" className="block text-sm font-medium text-slate-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  id="clients-notes-8"
+                  name="notes"
+                  rows={2}
+                  placeholder="Key account details, preferred communication channel..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-3">
               <button
                 type="button"
                 onClick={() => setIsAddOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddClient} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Company Name *
-                  </label>
-                  <input
-                    name="company_name"
-                    required
-                    placeholder="e.g. Ceylon Tea Exports Ltd"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Primary Contact Person *
-                  </label>
-                  <input
-                    name="contact_name"
-                    required
-                    placeholder="e.g. Priyantha Silva"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    name="phone"
-                    placeholder="011 234 5678"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    name="whatsapp_number"
-                    placeholder="+94 77 123 4567"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="billing@ceylontea.lk"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Billing Address
-                  </label>
-                  <input
-                    name="billing_address"
-                    placeholder="e.g. No. 45 Galle Road, Colombo 03"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Tax / VAT Registration No.
-                  </label>
-                  <input
-                    name="tax_registration"
-                    placeholder="e.g. 102938475-7000"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Notes
-                  </label>
-                  <textarea
-                    name="notes"
-                    rows={2}
-                    placeholder="Key account details, preferred communication channel..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(false)}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    "Register Client"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete / Deactivate Confirmation Dialog */}
-      {deleteConfirmClient && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
-                <AlertTriangle size={20} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">Remove Client</h3>
-                <p className="text-xs text-slate-500">{deleteConfirmClient.company_name}</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              {deleteConfirmClient.active_jobs_count && deleteConfirmClient.active_jobs_count > 0
-                ? "This client has linked job records. Deactivating will preserve all past job & invoice records while hiding the client from active operations."
-                : "Are you sure you want to remove this client? This client has no linked jobs and will be permanently deleted."}
-            </p>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmClient(null)}
-                disabled={isDeleting}
+                disabled={loading}
                 className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
-                type="button"
-                onClick={handleDeleteClient}
-                disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
               >
-                {isDeleting ? (
+                {loading ? (
                   <>
-                    <Loader2 size={15} className="animate-spin" />
-                    Removing...
+                    <Loader2 size={16} className="animate-spin" />
+                    Registering...
                   </>
                 ) : (
-                  <>
-                    <Trash2 size={15} />
-                    Confirm Remove
-                  </>
+                  "Register Client"
                 )}
               </button>
             </div>
+          </form>
+        </OperationDialog>
+      )}
+
+      {/* Delete / Deactivate Confirmation Dialog */}
+      {deleteConfirmClient && (
+        <OperationDialog titleId="remove-client-dialog" onDismiss={() => setDeleteConfirmClient(null)} className="w-full max-w-md p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <h3 id="remove-client-dialog" className="font-semibold text-slate-900">Remove Client</h3>
+              <p className="text-xs text-slate-500">{deleteConfirmClient.company_name}</p>
+            </div>
           </div>
-        </div>
+
+          <p className="text-sm text-slate-600">
+            {deleteConfirmClient.active_jobs_count && deleteConfirmClient.active_jobs_count > 0
+              ? "This client has linked job records. Deactivating will preserve all past job & invoice records while hiding the client from active operations."
+              : "Are you sure you want to remove this client? This client has no linked jobs and will be permanently deleted."}
+          </p>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmClient(null)}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteClient}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={15} />
+                  Confirm Remove
+                </>
+              )}
+            </button>
+          </div>
+        </OperationDialog>
       )}
     </div>
   );
