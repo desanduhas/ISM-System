@@ -1,14 +1,14 @@
 .page {
-  --login-ink: #151511;
-  --login-paper: #f5f2eb;
-  --login-gold: #c5a059;
+  --login-ink: #11110f;
+  --login-paper: #ffffff;
+  --login-gold: #b68a32;
   display: grid;
   grid-template-columns: 1.12fr 1fr;
   min-height: 100vh;
   min-height: 100svh;
   color: var(--login-ink);
   background: var(--login-paper);
-  font-family: var(--font-sans, "Plus Jakarta Sans"), sans-serif;
+  font-family: var(--font-sans, "Manrope Variable"), sans-serif;
 }
 
 .editorial {
@@ -20,7 +20,7 @@
   margin: 0;
   padding: clamp(32px, 4.4vw, 80px);
   overflow: hidden;
-  background: #080808;
+  background: #090909;
   color: var(--login-paper);
 }
 
@@ -51,9 +51,9 @@
 .motto {
   margin: 110px 0 0;
   color: var(--login-paper);
-  font-family: var(--font-display, "Cormorant Garamond"), Georgia, serif;
-  font-size: clamp(72px, 8.1vw, 150px);
-  font-weight: 500;
+  font-family: var(--font-display, "Newsreader Variable"), Georgia, serif;
+  font-size: clamp(68px, 7.5vw, 138px);
+  font-weight: 520;
   letter-spacing: -.062em;
   line-height: .83;
 }
@@ -92,6 +92,7 @@
   min-width: 0;
   align-items: center;
   padding: clamp(44px, 6vw, 110px);
+  border-top: 6px solid var(--login-gold);
 }
 
 .formColumn {
@@ -126,11 +127,11 @@
 .heading {
   margin: 0;
   color: var(--login-ink);
-  font-family: var(--font-display, "Cormorant Garamond"), Georgia, serif;
-  font-size: clamp(70px, 6.3vw, 108px);
-  font-weight: 500;
-  letter-spacing: -.07em;
-  line-height: .93;
+  font-family: var(--font-display, "Newsreader Variable"), Georgia, serif;
+  font-size: clamp(62px, 5.7vw, 94px);
+  font-weight: 530;
+  letter-spacing: -.055em;
+  line-height: .9;
 }
 
 .heading span {
@@ -169,7 +170,7 @@
   height: 52px;
   padding: 0 15px;
   border: 1px solid #ada99e;
-  border-radius: 3px;
+  border-radius: 5px;
   color: var(--login-ink);
   background: #faf8f3;
   font-family: inherit;
@@ -229,9 +230,9 @@
   margin-top: 3px;
   padding: 0 20px;
   border: 0;
-  border-radius: 3px;
+  border-radius: 5px;
   color: var(--login-paper);
-  background: #171713;
+  background: #121210;
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;

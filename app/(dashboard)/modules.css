@@ -1,12 +1,12 @@
 .operations-module,
 .operations-dialog {
   --module-line: #dcd7cd;
-  --module-ink: #181815;
-  --module-muted: #655f54;
-  --module-brass: #a58038;
-  --module-soft: #f6f3ed;
+  --module-ink: #121210;
+  --module-muted: #69645b;
+  --module-brass: #b68a32;
+  --module-soft: #f4f3f0;
   color: var(--module-ink);
-  font-family: var(--font-sans), Arial, sans-serif;
+  font-family: var(--font-sans), "Segoe UI Variable", sans-serif;
 }
 
 .operations-module {
@@ -21,16 +21,25 @@
 .operations-module .grid > * { min-width: 0; }
 
 .operations-module .module-heading {
-  gap: 1rem;
-  padding-block: .1rem 1.2rem;
-  border-bottom: 1px solid #bcb4a3;
+  position: relative;
+  gap: 1.25rem;
+  padding: .15rem 0 1.45rem 1.25rem;
+  border-bottom: 1px solid #cfcac0;
+}
+
+.operations-module .module-heading::before {
+  position: absolute;
+  inset: .35rem auto 1.65rem 0;
+  width: 3px;
+  background: var(--module-brass);
+  content: "";
 }
 
 .operations-module .module-heading h1 {
   margin: 0;
   color: var(--module-ink);
-  font: 500 clamp(2.65rem, 4.6vw, 4.4rem)/.98 var(--font-display), Georgia, serif;
-  letter-spacing: -.044em;
+  font: 520 clamp(2.7rem, 4.6vw, 4.5rem)/.94 var(--font-display), Georgia, serif;
+  letter-spacing: -.048em;
   overflow-wrap: anywhere;
 }
 
@@ -50,10 +59,12 @@
   min-height: 2.7rem;
   padding-inline: 1.15rem;
   border: 1px solid var(--module-ink);
-  border-radius: .4rem;
+  border-radius: .45rem;
   background: var(--module-ink);
-  color: #fff;
+  color: #fffdf7;
   box-shadow: none;
+  font-weight: 700;
+  letter-spacing: -.015em;
 }
 
 .operations-module .module-heading button.bg-purple-600:hover,
@@ -66,19 +77,20 @@
 .module-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--module-line);
+  background: #cfcac0;
   gap: 1px;
   overflow: hidden;
   margin: 0;
   border: 1px solid var(--module-line);
-  border-radius: .6rem;
+  border-radius: .35rem;
+  border-top: 3px solid var(--module-ink);
 }
 
 .module-metrics[data-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .module-metric {
   min-width: 0;
   padding: clamp(1rem, 2vw, 1.65rem);
-  background: white;
+  background: #fff;
 }
 .module-metric dt {
   display: flex;
@@ -95,13 +107,13 @@
 .module-metric dd { margin: .8rem 0 0; }
 .module-metric strong {
   display: block;
-  font: 600 clamp(1.75rem, 2.8vw, 2.9rem)/1.05 var(--font-display), Georgia, serif;
+  font: 560 clamp(1.8rem, 2.8vw, 3rem)/1 var(--font-display), Georgia, serif;
   font-variant-numeric: lining-nums tabular-nums;
   overflow-wrap: anywhere;
   letter-spacing: -.035em;
 }
 .module-metric dd span { display: block; margin-top: .3rem; font-size: .74rem; color: var(--module-muted); }
-.module-metric:first-child { background: #23231e; color: #fffdf6; }
+.module-metric:first-child { background: #121210; color: #fffdf6; }
 .module-metric:first-child dt,
 .module-metric:first-child dt svg { color: #e2c68b; }
 .module-metric:first-child dd span { color: #dfdacd; }
@@ -125,7 +137,7 @@
   border: 1px solid #cfc9bd;
   background: #fff;
   color: var(--module-ink);
-  border-radius: .35rem;
+  border-radius: .4rem;
   min-height: 2.65rem;
   max-width: 100%;
 }
@@ -149,8 +161,8 @@
 .operations-module .bg-white.rounded-xl,
 .operations-module .calendar-navigation {
   border-color: var(--module-line);
-  border-radius: .58rem;
-  box-shadow: none;
+  border-radius: .35rem;
+  box-shadow: 0 1px 0 rgb(18 18 16 / 4%);
 }
 .operations-module :is(.module-job-detail,.module-client-detail) h2,
 .module-job-detail h2, .module-client-detail h2, .module-calendar h2 {
@@ -165,7 +177,8 @@
 .module-detail-tabs > button { align-items: center; flex: 0 0 auto; padding: .8rem .25rem; white-space: nowrap; }
 .module-detail-tabs button[aria-pressed="true"] { border-bottom-color: #907135; color: #684e20; }
 .operations-module .client-directory-card {
-  border-top: 2px solid #b69a61;
+  border-top: 3px solid #171614;
+  border-radius: .3rem;
   transition: border-color .15s;
 }
 .operations-module .client-directory-card:focus-within,
@@ -200,6 +213,11 @@
   letter-spacing: .1em;
   white-space: nowrap;
 }
+.operations-module .module-table thead {
+  background: #171614;
+  border-bottom-color: #171614;
+}
+.operations-module .module-table th { color: #ead6a6; }
 .operations-module .module-table td { padding: .95rem 1rem; font-variant-numeric: tabular-nums; }
 .operations-module .module-table td[colspan] { padding: 3.6rem 1rem; color: var(--module-muted); }
 .operations-module .module-table tbody tr { border-bottom: 1px solid #e9e5dd; }
@@ -215,7 +233,8 @@
   border: 1px solid var(--module-line);
   background: #faf8f2;
   padding: .9rem 1.1rem 1rem;
-  border-radius: .55rem;
+  border-radius: .35rem;
+  border-left: 3px solid var(--module-brass);
 }
 .calendar-navigation { align-items: center; }
 .calendar-navigation h2 { font-size: clamp(1.45rem, 2.3vw, 2rem); }
@@ -236,16 +255,16 @@
   overflow: auto;
   overscroll-behavior: contain;
   border: 1px solid #c7bfae;
-  border-top: 3px solid #b39760;
-  border-radius: .75rem;
-  background: #fffefa;
+  border-top: 4px solid var(--module-brass);
+  border-radius: .4rem;
+  background: #fff;
   box-shadow: 0 1.5rem 5rem #211b1238;
 }
 .operations-dialog.max-w-2xl { width: min(calc(100% - 2rem), 44rem); }
 .operations-dialog.max-w-md { width: min(calc(100% - 2rem), 28rem); }
 .operations-dialog::backdrop { background: rgb(30 28 22 / .56); backdrop-filter: blur(2px); }
 .operations-dialog :is(h2, h3) {
-  font: 600 clamp(1.75rem, 3.1vw, 2.4rem)/1.06 var(--font-display), Georgia, serif;
+  font: 560 clamp(1.8rem, 3.1vw, 2.5rem)/1.02 var(--font-display), Georgia, serif;
   letter-spacing: -.035em; color: var(--module-ink);
 }
 .operations-dialog label { color: #494438; }
@@ -253,7 +272,7 @@
   display: inline-grid;
   width: 2.45rem; height: 2.45rem; flex: 0 0 2.45rem;
   place-items: center;
-  border: 1px solid #ded8cb; background: white; border-radius: 50%;
+  border: 1px solid #ded8cb; background: white; border-radius: .45rem;
 }
 .operations-dialog button:disabled { cursor: default; opacity: .5; }
 .operations-dialog textarea { resize: vertical; }

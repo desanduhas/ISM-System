@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -119,7 +119,7 @@ export default function LoginPage() {
             {authError && <p role="alert" className={styles.authError}>{authError}</p>}
             <button className={styles.submit} type="submit" disabled={busy}>
               <span>{busy ? "Signing in…" : "Sign in"}</span>
-              <ArrowRight size={20} strokeWidth={1.6} aria-hidden="true" />
+              <LogIn size={19} strokeWidth={1.7} aria-hidden="true" />
             </button>
           </form>
           <p className={styles.help}>For password resets, contact your system administrator.</p>

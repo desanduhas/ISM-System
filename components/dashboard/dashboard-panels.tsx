@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronRight, FolderOpen, type LucideIcon } from "lucide-react";
+import { CalendarDays, Check, FolderOpen, type LucideIcon } from "lucide-react";
 import type { JobStage, Profile } from "@/lib/types";
 import { STAGE_LABELS } from "@/lib/utils";
 import styles from "./dashboard.module.css";
@@ -32,7 +32,7 @@ export function DashboardHero({ profile, title, emphasis, href, action }: Dashbo
         <time dateTime={today.toISOString()} className={styles.heroDate}>{longDate.format(today)}</time>
         <h1>{title} <em>{emphasis}</em></h1>
         <p>{firstName ? `Welcome back, ${firstName}.` : "Welcome back."}</p>
-        <Link className={styles.heroAction} href={href}>{action} <ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link className={styles.heroAction} href={href}>{action}</Link>
       </div>
     </header>
   );
@@ -54,7 +54,6 @@ export function Metrics({ items }: { items: Metric[] }) {
           <>
             <div className={styles.metricTop}>
               <Icon size={19} strokeWidth={1.6} aria-hidden="true" />
-              {href && <ArrowUpRight className={styles.metricArrow} size={13} aria-hidden="true" />}
             </div>
             <strong>{value.toLocaleString("en-GB")}</strong>
             <span>{label}</span>
@@ -74,7 +73,7 @@ export function PanelHeading({ title, href, action }: { title: string; href: str
   return (
     <div className={styles.panelHeading}>
       <h2>{title}</h2>
-      <Link href={href} aria-label={`${action} – ${title}`}>{action} <ArrowUpRight size={13} aria-hidden="true" /></Link>
+      <Link href={href} aria-label={`${action} – ${title}`}>{action}</Link>
     </div>
   );
 }
@@ -118,7 +117,6 @@ export function JobPanel({ jobs, title, emptyTitle, emptyDetail }: JobPanelProps
                     {typeof job.deadline === "string" && <time className={styles.jobDate} dateTime={job.deadline}>Due {shortDate(job.deadline)}</time>}
                   </div>
                   <span className={styles.stage} data-stage={stage}>{STAGE_LABELS[stage] || stage}</span>
-                  <ChevronRight size={14} aria-hidden="true" />
                 </Link>
               </li>
             );
@@ -169,7 +167,6 @@ export function DeadlinePanel({ jobs }: { jobs: Array<Record<string, unknown>> }
                     <strong>{job.title as string}</strong>
                     <small>{jobMeta(job)}</small>
                   </div>
-                  <ChevronRight size={14} aria-hidden="true" />
                 </Link>
               </li>
             );

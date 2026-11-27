@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Bell, BriefcaseBusiness, CalendarDays, ContactRound, FileText, LayoutGrid, UsersRound, WalletCards, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, ContactRound, FileText, Globe2, LayoutGrid, UsersRound, WalletCards, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
@@ -64,7 +64,7 @@ export default function Sidebar({ role, dismiss }: { role: UserRole; dismiss?: (
           <Bell size={17} strokeWidth={1.6} /> Notifications
         </Link>
         <a className="rail-site" href="https://ishopmarketing.com/" target="_blank" rel="noreferrer">
-          Agency website <ArrowUpRight size={14} aria-hidden="true" />
+          Agency website <Globe2 size={14} aria-hidden="true" />
         </a>
       </div>
     </aside>
