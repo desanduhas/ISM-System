@@ -13,7 +13,7 @@ Production-ready, responsive web application for Sri Lankan marketing agencies. 
 - **Invoicing**: `@react-pdf/renderer` for server-side PDF invoice generation
 - **Messaging**: Meta WhatsApp Cloud API (Template-based business notifications with simulated mock fallback)
 - **Validation**: Zod & React Hook Form
-- **Testing**: Jest & Testing Library (57 unit & workflow test cases)
+- **Testing**: Jest & Testing Library (78 unit, security, and workflow test cases)
 
 ---
 
@@ -79,7 +79,9 @@ META_WHATSAPP_ACCESS_TOKEN=EAAB...
 META_WHATSAPP_PHONE_NUMBER_ID=100...
 META_WHATSAPP_WABA_ID=100...
 META_WHATSAPP_VERIFY_TOKEN=your_custom_secure_verify_token
-META_GRAPH_API_VERSION=v21.0
+META_WHATSAPP_APP_SECRET=your_meta_app_secret
+META_GRAPH_API_VERSION=v27.0
+META_WHATSAPP_TEMPLATE_LANGUAGE=en_US
 
 # Application URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -131,7 +133,7 @@ This creates standard test accounts:
    - **WhatsApp Business Account ID (WABA ID)**
 
 ### 2. WhatsApp Message Templates
-In WhatsApp Manager -> Account Tools -> **Message Templates**, create the following 9 utility/marketing templates in language `en`:
+In WhatsApp Manager -> Account Tools -> **Message Templates**, create the following 9 utility templates in language **English (US) / `en_US`**:
 
 1. `job_assigned`:
    ```
@@ -198,6 +200,12 @@ In WhatsApp Manager -> Account Tools -> **Message Templates**, create the follow
    - **Callback URL**: `https://<your-domain>/api/webhooks/whatsapp`
    - **Verify Token**: Must match `META_WHATSAPP_VERIFY_TOKEN` in your environment.
 2. Under Webhook Fields, subscribe to **`messages`**.
+
+Workflow notifications are dispatched automatically for job assignment, review, revision,
+approval, invoice readiness, client delivery, payment verification, and completion. When the
+Meta credentials are absent, the same events are safely written to `whatsapp_message_logs`
+in mock mode. Management can check the integration without exposing secrets at
+`GET /api/whatsapp/status`.
 
 ---
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth/get-user";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyJobCreatedViaWhatsApp } from "@/lib/whatsapp/workflow";
 
 const CreateJobSchema = z.object({
   title: z.string().min(1).max(200),
@@ -100,6 +101,8 @@ export async function POST(request: NextRequest) {
       ip_address: request.headers.get("x-forwarded-for"),
       user_agent: request.headers.get("user-agent"),
     });
+
+    await notifyJobCreatedViaWhatsApp(job);
 
     return NextResponse.json({ data: job }, { status: 201 });
   } catch (err) {

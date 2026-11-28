@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import { verifyMetaWebhookSignature, webhookErrorMessage } from "@/lib/whatsapp/webhook";
 
 describe("WhatsApp Webhook Verification & Security", () => {
   const VERIFY_TOKEN = "test_meta_webhook_token_12345";
@@ -9,12 +10,6 @@ describe("WhatsApp Webhook Verification & Security", () => {
       return { status: 200, challenge };
     }
     return { status: 403, error: "Forbidden" };
-  }
-
-  function verifySignature(signature: string | null, rawBody: string, appSecret: string): boolean {
-    if (!signature) return false;
-    const expected = "sha256=" + createHmac("sha256", appSecret).update(rawBody).digest("hex");
-    return signature === expected;
   }
 
   test("approves subscription challenge with matching token", () => {
@@ -37,7 +32,7 @@ describe("WhatsApp Webhook Verification & Security", () => {
     const payload = JSON.stringify({ object: "whatsapp_business_account", entry: [] });
     const signature = "sha256=" + createHmac("sha256", APP_SECRET).update(payload).digest("hex");
 
-    expect(verifySignature(signature, payload, APP_SECRET)).toBe(true);
+    expect(verifyMetaWebhookSignature(payload, signature, APP_SECRET)).toBe(true);
   });
 
   test("rejects tampered or mismatched payload signature", () => {
@@ -45,11 +40,23 @@ describe("WhatsApp Webhook Verification & Security", () => {
     const tamperedPayload = JSON.stringify({ object: "whatsapp_business_account", entry: [{ id: "fake" }] });
     const signature = "sha256=" + createHmac("sha256", APP_SECRET).update(payload).digest("hex");
 
-    expect(verifySignature(signature, tamperedPayload, APP_SECRET)).toBe(false);
+    expect(verifyMetaWebhookSignature(tamperedPayload, signature, APP_SECRET)).toBe(false);
   });
 
   test("rejects request without signature header", () => {
-    expect(verifySignature(null, "{}", APP_SECRET)).toBe(false);
+    expect(verifyMetaWebhookSignature("{}", null, APP_SECRET)).toBe(false);
+  });
+
+  test("rejects a malformed signature without throwing", () => {
+    expect(verifyMetaWebhookSignature("{}", "sha256=short", APP_SECRET)).toBe(false);
+    expect(verifyMetaWebhookSignature("{}", "md5=invalid", APP_SECRET)).toBe(false);
+  });
+
+  test("extracts safe delivery error text", () => {
+    expect(webhookErrorMessage({
+      errors: [{ code: 131026, title: "Message undeliverable" }],
+    })).toBe("Message undeliverable");
+    expect(webhookErrorMessage({})).toBeNull();
   });
 });
 

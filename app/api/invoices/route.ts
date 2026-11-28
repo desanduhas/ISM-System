@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth/get-user";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyStageTransitionViaWhatsApp } from "@/lib/whatsapp/workflow";
 
 const LineItemSchema = z.object({
   description: z.string().min(1),
@@ -59,7 +60,11 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
 
     // Check job is in APPROVED stage
-    const { data: job } = await admin.from("jobs").select("current_stage").eq("id", validated.job_id).single();
+    const { data: job } = await admin
+      .from("jobs")
+      .select("id, job_number, title, current_stage, assigned_to, created_by, agreed_price, created_at, updated_at, client:clients(company_name, contact_name, phone, whatsapp_number)")
+      .eq("id", validated.job_id)
+      .single();
     if (!job || !["APPROVED", "INVOICE_READY"].includes(job.current_stage)) {
       return NextResponse.json({ error: "Job must be APPROVED before creating an invoice" }, { status: 400 });
     }
@@ -110,6 +115,8 @@ export async function POST(request: NextRequest) {
       entity_id: invoice.id,
       new_values: { invoice_number: invoice.invoice_number, total },
     });
+
+    await notifyStageTransitionViaWhatsApp(job, "INVOICE_READY", { eventId: invoice.id });
 
     return NextResponse.json({ data: invoice }, { status: 201 });
   } catch (err) {

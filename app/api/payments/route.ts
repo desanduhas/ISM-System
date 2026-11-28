@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth/get-user";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyStageTransitionViaWhatsApp } from "@/lib/whatsapp/workflow";
 
 const ReportPaymentSchema = z.object({
   invoice_id: z.string().uuid(),
@@ -107,6 +108,19 @@ export async function POST(request: NextRequest) {
         to_stage: "PAYMENT_REPORTED",
         changed_by: profile.id,
       });
+
+      const { data: job } = await admin
+        .from("jobs")
+        .select("id, job_number, title, assigned_to, created_by, agreed_price, created_at, updated_at, client:clients(company_name, contact_name, phone, whatsapp_number)")
+        .eq("id", validated.job_id)
+        .single();
+
+      if (job) {
+        await notifyStageTransitionViaWhatsApp(job, "PAYMENT_REPORTED", {
+          eventId: newPayment.id,
+          amount: validated.amount,
+        });
+      }
 
       return NextResponse.json({ data: newPayment }, { status: 201 });
     }

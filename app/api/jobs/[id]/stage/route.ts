@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/get-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canTransition } from "@/lib/auth/role-guard";
 import type { JobStage, UserRole } from "@/lib/types";
+import { notifyStageTransitionViaWhatsApp } from "@/lib/whatsapp/workflow";
 
 const StageTransitionSchema = z.object({
   to_stage: z.enum([
@@ -113,6 +114,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Create in-app notifications
     await createStageNotifications(admin, job, fromStage, to_stage as JobStage, profile.id, revision_notes);
+
+    await notifyStageTransitionViaWhatsApp(
+      { ...job, ...updated, client: job.client },
+      to_stage as JobStage,
+      { eventId: updated.updated_at, revisionNotes: revision_notes }
+    );
 
     return NextResponse.json({ data: updated });
   } catch (err) {
