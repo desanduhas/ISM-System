@@ -1,4 +1,8 @@
-import { buildTemplateComponents, TEMPLATE_DOCS } from "@/lib/whatsapp/templates";
+import {
+  buildTemplateComponents,
+  buildTemplateRegistrationPayload,
+  TEMPLATE_DOCS,
+} from "@/lib/whatsapp/templates";
 import { formatSriLankanPhone, generateIdempotencyKey } from "@/lib/utils";
 
 describe("WhatsApp Template Utilities", () => {
@@ -23,7 +27,21 @@ describe("WhatsApp Template Utilities", () => {
     templates.forEach(t => {
       expect(TEMPLATE_DOCS[t as keyof typeof TEMPLATE_DOCS].body).toBeTruthy();
       expect(TEMPLATE_DOCS[t as keyof typeof TEMPLATE_DOCS].params.length).toBeGreaterThan(0);
+      expect(TEMPLATE_DOCS[t as keyof typeof TEMPLATE_DOCS].examples).toHaveLength(
+        TEMPLATE_DOCS[t as keyof typeof TEMPLATE_DOCS].params.length
+      );
     });
+  });
+
+  test("registration payloads include Meta review examples for every variable", () => {
+    for (const name of Object.keys(TEMPLATE_DOCS) as Array<keyof typeof TEMPLATE_DOCS>) {
+      const payload = buildTemplateRegistrationPayload(name);
+      expect(payload.name).toBe(name);
+      expect(payload.language).toBe("en_US");
+      expect(payload.category).toBe("UTILITY");
+      expect(payload.parameter_format).toBe("POSITIONAL");
+      expect(payload.components[0].example.body_text[0]).toEqual(TEMPLATE_DOCS[name].examples);
+    }
   });
 });
 

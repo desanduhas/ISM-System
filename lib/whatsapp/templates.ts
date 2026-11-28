@@ -40,41 +40,72 @@ export function buildTemplateComponents<T extends WhatsAppTemplateName>(
 }
 
 // Template documentation for WhatsApp Manager setup
-export const TEMPLATE_DOCS: Record<WhatsAppTemplateName, { body: string; params: string[] }> = {
+export const TEMPLATE_DOCS: Record<WhatsAppTemplateName, { body: string; params: string[]; examples: string[] }> = {
   job_assigned: {
-    body: "New job assigned: {{1}}\nClient: {{2}}\nTask: {{3}}\nDate: {{4}}\nOpen job: {{5}}",
+    body: "A new job has been assigned in ISM Flow.\n\nJob reference: {{1}}\nClient: {{2}}\nTask: {{3}}\nScheduled date: {{4}}\nJob link: {{5}}\n\nPlease review the assignment details.",
     params: ["job_number", "client_name", "job_title", "scheduled_date", "job_url"],
+    examples: ["ISM-2026-1001", "ABC Company", "Social Media Design", "28 Nov 2026, 10:00 AM", "https://ismlk.com/jobs/example"],
   },
   client_visit_reminder: {
-    body: "Visit reminder: {{1}}\nClient: {{2}}\nDate & Time: {{3}}\nLocation: {{4}}",
+    body: "Client visit reminder for job {{1}}.\nClient: {{2}}\nDate and time: {{3}}\nLocation: {{4}}\n\nPlease review the visit details in ISM Flow.",
     params: ["job_number", "client_name", "visit_date", "visit_location"],
+    examples: ["ISM-2026-1001", "ABC Company", "30 Nov 2026, 9:30 AM", "Colombo 03"],
   },
   job_ready_for_review: {
-    body: "Review required: {{1}}\nJob: {{2}}\nClient: {{3}}\nOpen for review: {{4}}",
+    body: "Job {{1}} is ready for review.\nTask: {{2}}\nClient: {{3}}\nReview link: {{4}}\n\nPlease review the submitted work.",
     params: ["job_number", "job_title", "client_name", "job_url"],
+    examples: ["ISM-2026-1001", "Social Media Design", "ABC Company", "https://ismlk.com/jobs/example"],
   },
   revision_requested: {
-    body: "Revision requested: {{1}}\nJob: {{2}}\nNotes: {{3}}\nOpen job: {{4}}",
+    body: "A revision was requested for job {{1}}.\nTask: {{2}}\nRevision notes: {{3}}\nJob link: {{4}}\n\nPlease review the feedback and update the work.",
     params: ["job_number", "job_title", "revision_notes", "job_url"],
+    examples: ["ISM-2026-1001", "Social Media Design", "Update the headline and brand colour", "https://ismlk.com/jobs/example"],
   },
   work_approved: {
-    body: "Great news! Your work for {{1}} has been approved.\nJob: {{2}}\nClient: {{3}}",
+    body: "Work has been approved for job {{1}}.\nTask: {{2}}\nClient: {{3}}\n\nNo further changes are required at this stage.",
     params: ["job_number", "job_title", "client_name"],
+    examples: ["ISM-2026-1001", "Social Media Design", "ABC Company"],
   },
   invoice_ready: {
-    body: "Invoice ready to send: {{1}}\nJob: {{2}}\nClient: {{3}}\nOpen job: {{4}}",
+    body: "An invoice is ready for job {{1}}.\nTask: {{2}}\nClient: {{3}}\nJob link: {{4}}\n\nPlease review and send the invoice.",
     params: ["job_number", "job_title", "client_name", "job_url"],
+    examples: ["ISM-2026-1001", "Social Media Design", "ABC Company", "https://ismlk.com/jobs/example"],
   },
   client_delivery_ready: {
-    body: "Dear {{1}}, your project '{{2}}' from {{3}} is ready. We will share the final files shortly.",
+    body: "Hello {{1}}, your project {{2}} from {{3}} is ready.\n\nWe will share the final files shortly.",
     params: ["client_name", "job_title", "company_name"],
+    examples: ["Alex", "Social Media Design", "I SHOP MARKETING (PVT) Ltd"],
   },
   payment_verification_required: {
-    body: "Payment verification needed: {{1}}\nClient: {{2}}\nAmount: {{3}}\nOpen job: {{4}}",
+    body: "Payment verification is required for job {{1}}.\nClient: {{2}}\nAmount: {{3}}\nJob link: {{4}}\n\nPlease verify the payment details.",
     params: ["job_number", "client_name", "amount", "job_url"],
+    examples: ["ISM-2026-1001", "ABC Company", "LKR 25,000.00", "https://ismlk.com/jobs/example"],
   },
   job_completed: {
-    body: "Job completed: {{1}} - {{2}}\nClient: {{3}}\nAll tasks have been closed successfully.",
+    body: "Job {{1}} is complete.\nTask: {{2}}\nClient: {{3}}\n\nAll tasks have been closed successfully.",
     params: ["job_number", "job_title", "client_name"],
+    examples: ["ISM-2026-1001", "Social Media Design", "ABC Company"],
   },
 };
+
+export function buildTemplateRegistrationPayload(
+  name: WhatsAppTemplateName,
+  language = "en_US"
+) {
+  const definition = TEMPLATE_DOCS[name];
+
+  return {
+    name,
+    language,
+    category: "UTILITY",
+    allow_category_change: true,
+    parameter_format: "POSITIONAL",
+    components: [
+      {
+        type: "BODY",
+        text: definition.body,
+        example: { body_text: [definition.examples] },
+      },
+    ],
+  };
+}

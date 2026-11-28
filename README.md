@@ -133,67 +133,21 @@ This creates standard test accounts:
    - **WhatsApp Business Account ID (WABA ID)**
 
 ### 2. WhatsApp Message Templates
-In WhatsApp Manager -> Account Tools -> **Message Templates**, create the following 9 utility templates in language **English (US) / `en_US`**:
+Sign in with a Management account and open **Administration -> WhatsApp Setup** (or `/whatsapp-setup`). The setup page checks Meta's registry and securely submits only the missing `en_US` utility templates using server-side credentials. Template bodies, positional review examples, and parameter order are defined in `lib/whatsapp/templates.ts`.
 
-1. `job_assigned`:
-   ```
-   New job assigned: {{1}}
-   Client: {{2}}
-   Task: {{3}}
-   Date: {{4}}
-   Open job: {{5}}
-   ```
-2. `client_visit_reminder`:
-   ```
-   Visit reminder: {{1}}
-   Client: {{2}}
-   Date & Time: {{3}}
-   Location: {{4}}
-   ```
-3. `job_ready_for_review`:
-   ```
-   Review required: {{1}}
-   Job: {{2}}
-   Client: {{3}}
-   Open for review: {{4}}
-   ```
-4. `revision_requested`:
-   ```
-   Revision requested: {{1}}
-   Job: {{2}}
-   Notes: {{3}}
-   Open job: {{4}}
-   ```
-5. `work_approved`:
-   ```
-   Great news! Your work for {{1}} has been approved.
-   Job: {{2}}
-   Client: {{3}}
-   ```
-6. `invoice_ready`:
-   ```
-   Invoice ready to send: {{1}}
-   Job: {{2}}
-   Client: {{3}}
-   Open job: {{4}}
-   ```
-7. `client_delivery_ready`:
-   ```
-   Dear {{1}}, your project '{{2}}' from {{3}} is ready. We will share the final files shortly.
-   ```
-8. `payment_verification_required`:
-   ```
-   Payment verification needed: {{1}}
-   Client: {{2}}
-   Amount: {{3}}
-   Open job: {{4}}
-   ```
-9. `job_completed`:
-   ```
-   Job completed: {{1}} - {{2}}
-   Client: {{3}}
-   All tasks have been closed successfully.
-   ```
+Required template names:
+
+1. `job_assigned`
+2. `client_visit_reminder`
+3. `job_ready_for_review`
+4. `revision_requested`
+5. `work_approved`
+6. `invoice_ready`
+7. `client_delivery_ready`
+8. `payment_verification_required`
+9. `job_completed`
+
+Meta must approve a template before ISM Flow can use it for live business-initiated messages. The setup page displays each template's current review state.
 
 ### 3. Webhook Configuration
 1. In Meta Developer Console -> WhatsApp -> Configuration -> **Webhook**:

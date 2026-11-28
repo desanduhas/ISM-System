@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, BriefcaseBusiness, CalendarDays, ContactRound, FileText, Globe2, LayoutGrid, UsersRound, WalletCards, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, ContactRound, FileText, Globe2, LayoutGrid, MessageCircle, UsersRound, WalletCards, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
@@ -25,6 +25,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     { href: "/invoices", label: "Invoices", icon: FileText, roles: ["MANAGEMENT", "FINANCE"] },
     { href: "/payments", label: "Payments", icon: WalletCards, roles: ["MANAGEMENT", "FINANCE"] },
     { href: "/employees", label: "Employees", icon: UsersRound, roles: ["MANAGEMENT"] },
+    { href: "/whatsapp-setup", label: "WhatsApp Setup", icon: MessageCircle, roles: ["MANAGEMENT"] },
   ] },
 ];
 
